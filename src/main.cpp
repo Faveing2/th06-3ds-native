@@ -36,12 +36,6 @@ int main(int argc, char *argv[])
 
     romfsInit();
 
-    int link = link3dsStdio();
-
-    fprintf(stderr, "Hello World");
-
-    SDL_Log("HELLOW");
-
     if (g_Supervisor.LoadConfig(TH_CONFIG_FILE) != ZUN_SUCCESS)
     {
         g_GameErrorContext.Flush();
@@ -74,7 +68,9 @@ restart:
 
     g_SoundPlayer.InitializeDSound();
     Controller::GetJoystickCaps();
+    #ifndef _3DS
     Controller::ResetKeyboard();
+    #endif
 
     if (Supervisor::RegisterChain() != ZUN_SUCCESS)
     {

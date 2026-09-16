@@ -14,6 +14,7 @@
 // The actual resolution used for the output window and viewport scaling
 //   At some point there should be a method to change this without recompiling but for now
 //   this'll do
+
 #ifndef GAME_WINDOW_WIDTH_REAL
 #define GAME_WINDOW_WIDTH_REAL (GAME_WINDOW_WIDTH)
 #endif
