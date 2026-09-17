@@ -20,19 +20,25 @@ u32 g_LastFileSize;
 
 FILE *FileSystem::FopenUTF8(const char *filepath, const char *mode)
 {
+    #ifdef _3DS_DEBUG
+    utils::DebugPrint("Opening");
+    utils::DebugPrint(filepath);
+    #endif
     return fopen(filepath, mode);
 }
 
 void FileSystem::CreateDir(const char *path)
 {
-// #ifdef _WIN32
-//     _mkdir(path);
-// #elif __cplusplus >= 201703L
-//     auto p = std::filesystem::path(path);
-//     std::filesystem::create_directory(p);
-// #else
-//     mkdir(path, 0755);
-// #endif
+#ifdef _WIN32
+    _mkdir(path);
+#elif __cplusplus >= 201703L
+    auto p = std::filesystem::path(path);
+    std::filesystem::create_directory(p);
+#else
+    utils::DebugPrint2("Make path");
+    utils::DebugPrint2(path);
+    mkdir(path, 0755);
+#endif
 }
 
 u8 *FileSystem::OpenPath(const char *filepath, int isExternalResource)

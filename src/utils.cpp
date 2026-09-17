@@ -3,6 +3,10 @@
 #include <cstdio>
 #endif
 
+#ifdef _3DS_DEBUG
+#include <SDL2/SDL_Log.h>
+#endif
+
 #include "ZunMath.hpp"
 #include "i18n.hpp"
 #include "utils.hpp"
@@ -16,15 +20,13 @@ void DebugPrint(const char *fmt, ...)
     std::va_list args;
 
     va_start(args, fmt);
-    //std::vsnprintf(tmpBuffer, 511, fmt, args);
-    SDL_Log(tmpBuffer)
+    std::vsnprintf(tmpBuffer, 511, fmt, args);
+    //SDL_Log(tmpBuffer);
     va_end(args);
-
-//     std::printf("DEBUG2: %s\n", tmpBuffer);
-// #ifdef 3DS_DEBUG
-//     SDL_Log(tmpBuffer);
 #endif
-
+#ifdef _3DS_DEBUG
+    SDL_Log(fmt);
+#endif
 }
 
 f32 AddNormalizeAngle(f32 a, f32 b)
@@ -70,6 +72,9 @@ void DebugPrint2(const char *fmt, ...)
     va_end(args);
 
     std::printf("DEBUG2: %s\n", tmpBuffer);
+#endif
+#ifdef _3DS_DEBUG
+    SDL_Log(fmt);
 #endif
 }
 }; // namespace utils

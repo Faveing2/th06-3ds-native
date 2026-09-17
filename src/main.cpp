@@ -36,6 +36,11 @@ int main(int argc, char *argv[])
 
     romfsInit();
 
+    SDL_Log("Starting th06-3ds-native");
+    utils::DebugPrint("Testing DebugPrint");
+
+    Controller::ResetKeyboard();
+
     if (g_Supervisor.LoadConfig(TH_CONFIG_FILE) != ZUN_SUCCESS)
     {
         g_GameErrorContext.Flush();

@@ -622,9 +622,12 @@ i32 Supervisor::LoadPbg3(i32 pbg3FileIdx, const char *filename)
             i32 res = this->pbg3Archives[pbg3FileIdx]->FindEntry(verPath);
             if (res < 0)
             {
-                g_GameErrorContext.Fatal("error : データのバージョンが違います\n");
+                // Lets put this in the log instead
+                utils::DebugPrint("error : データのバージョンが違います\n");
+                //g_GameErrorContext.Fatal("error : データのバージョンが違います\n");
                 return 1;
             }
+            utils::DebugPrint2("Finished loading");
         }
         else
         {
@@ -645,6 +648,8 @@ ZunResult Supervisor::LoadConfig(const char *path)
     const GameConfiguration *data;
     FILE *wavFile;
     FILE *wavFile2;
+
+    utils::DebugPrint2("Loading config");
 
     std::memset(&g_Supervisor.cfg, 0, sizeof(GameConfiguration));
     g_Supervisor.cfg.opts = g_Supervisor.cfg.opts | (1 << GCOS_USE_D3D_HW_TEXTURE_BLENDING);
@@ -673,7 +678,8 @@ ZunResult Supervisor::LoadConfig(const char *path)
         g_Supervisor.cfg.windowed = false;
         g_Supervisor.cfg.frameskipConfig = 0;
         g_Supervisor.cfg.controllerMapping = g_ControllerMapping;
-        g_GameErrorContext.Log(TH_ERR_CONFIG_NOT_FOUND);
+        utils::DebugPrint(TH_ERR_CONFIG_NOT_FOUND);
+        //g_GameErrorContext.Log(TH_ERR_CONFIG_NOT_FOUND);
     }
     else
     {

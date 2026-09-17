@@ -31,6 +31,12 @@ include $(DEVKITARM)/3ds_rules
 #     - icon.png
 #     - <libctru folder>/default_icon.png
 #---------------------------------------------------------------------------------
+
+APP_TITLE := Touhou 06 3DS
+APP_DESCRIPTION := Embodiment of Scarlet Devil
+APP_AUTHOR := Faveing
+#APP_ICON := $(CURDIR)/icon.png
+
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	src
@@ -50,9 +56,9 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 			-ffunction-sections \
 			$(ARCH)
 
-CFLAGS	+=	$(INCLUDE) -D__3DS__ -s -O3 -D_3DS
+CFLAGS	+=	$(INCLUDE) -D__3DS__ -D_3DS -D_3DS_DEBUG
 
-CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -s -O3 -D_3DS
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -D_3DS -D_3DS_DEBUG
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
