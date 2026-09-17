@@ -3,7 +3,7 @@
 #define TH_LANG TH_JP
 
 // JP
-#define TH_JP_CONFIG_FILE "romfs:/東方紅魔郷.cfg"
+#define TH_JP_CONFIG_FILE "/th06/東方紅魔郷.cfg"
 #define TH_JP_WINDOW_TITLE "東方紅魔郷　〜 the Embodiment of Scarlet Devil"
 #define TH_JP_DBG_MAINMENU_VRAM "Debug : title 開始 VRAM = %d\n"
 #define TH_JP_DBG_RESULTSCREEN_COUNAT "counat = %d\n"
@@ -95,12 +95,12 @@
 
 #define TH_JP_UNKNOWN_SPELLCARD "？？？？？"
 
-#define TH_JP_CM_DAT_FILE "romfs:/紅魔郷CM.DAT"
-#define TH_JP_ED_DAT_FILE "romfs:/紅魔郷ED.DAT"
-#define TH_JP_IN_DAT_FILE "romfs:/紅魔郷IN.DAT"
-#define TH_JP_MD_DAT_FILE "romfs:/紅魔郷MD.DAT"
-#define TH_JP_ST_DAT_FILE "romfs:/紅魔郷ST.DAT"
-#define TH_JP_TL_DAT_FILE "romfs:/紅魔郷TL.DAT"
+#define TH_JP_CM_DAT_FILE "/th06/紅魔郷CM.DAT"
+#define TH_JP_ED_DAT_FILE "/th06/紅魔郷ED.DAT"
+#define TH_JP_IN_DAT_FILE "/th06/紅魔郷IN.DAT"
+#define TH_JP_MD_DAT_FILE "/th06/紅魔郷MD.DAT"
+#define TH_JP_ST_DAT_FILE "/th06/紅魔郷ST.DAT"
+#define TH_JP_TL_DAT_FILE "/th06/紅魔郷TL.DAT"
 
 // EN
 #define TH_EN_CONFIG_FILE "th06.cfg"
@@ -312,5 +312,5 @@
 // weird encodings
 #define TH_SONG_NAME "\x81\xF4%s"
 #define TH_FONT_NAME "ＭＳ ゴシック"
-#define TH_PRIMARY_FONT_FILENAME "romfs:/msgothic.ttc"
+#define TH_PRIMARY_FONT_FILENAME "/th06/msgothic.ttc"
 #define TH_FALLBACK_FONT_FILENAME "NotoSansJP-Regular.ttf"
