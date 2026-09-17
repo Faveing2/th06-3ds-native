@@ -1,5 +1,9 @@
 # th06-3ds-native
 
+# Installing
+
+Create a folder on the root of your SD card called th06, then Legally obtain a copy of Touhou Koumakyou, then copy all the .DAT files to that folder. Also copy the MS gothic font file to th06 and make sure it is named msgothic.ttc, if not then rename it.
+
 # TODO
 
 - [ ] Build a buildscript to aid in installing dependencies and compiling
