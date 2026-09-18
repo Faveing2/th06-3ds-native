@@ -9,6 +9,7 @@
 #include "Software.hpp"
 #include "i18n.hpp"
 #include "utils.hpp"
+#include "GfxCitro3d.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_timer.h>
@@ -31,7 +32,7 @@ static const struct
 {
     const char *name;
     GfxInterface *(*TryInit)();
-} s_RenderBackends[] = {{"Software fallback (VERY SLOW)", Software::Init}};
+} s_RenderBackends[] = {{"Citro3D", GfxCitro3d::Create},{"Software fallback (VERY SLOW)", Software::Init}};
 
 RenderResult GameWindow::Render()
 {

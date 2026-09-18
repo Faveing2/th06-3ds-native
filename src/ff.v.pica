@@ -1,0 +1,54 @@
+; Uniforms
+.fvec projection[4], modelView[4], textureMatrix[4]
+
+; Inputs
+.alias position v0
+.alias texCords v1
+.alias diffuse v2
+
+; Constants
+.constf myconst(0.0, 1.0, -1.0, -0.5)
+.alias  zeros myconst.xxxx ; Vector full of zeros
+.alias  ones  myconst.yyyy ; Vector full of ones
+
+; Outputs
+.out outpos position
+.out outtc0 texcoord0
+.out outclr color
+
+.proc main
+	; Force the YW component of inpos to be 1.0
+    mov r0.xy, texCords
+    mov r0.zw, ones
+
+    ; textcord = (textureMatrix*r0).xy
+    dp4 outtc0.x, textureMatrix[0], r0
+    dp4 outtc0.y, textureMatrix[1], r0
+
+    ; values not used for the 2D texture cords set them to 0
+    mov outtc0.zw, myconst.xx
+
+    ; Set the diffuse
+    mov outclr, diffuse
+
+    ; r1 = vec4(position, 1.0)
+    mov r1.xyz, position
+    mov r1.w, ones
+
+    ; r3 = modelView * position
+    dp4 r3.x, modelView[0], r1
+    dp4 r3.y, modelView[1], r1
+    dp4 r3.z, modelView[2], r1
+    dp4 r3.w, modelView[3], r1
+
+    ;Skip viewZ calulcation
+
+    ; outpos = projection * r3
+    dp4 outpos.x, projection[0], r3
+    dp4 outpos.y, projection[1], r3
+    dp4 outpos.z, projection[2], r3
+    dp4 outpos.w, projection[3], r4
+
+	; We're finished
+	end
+.end
