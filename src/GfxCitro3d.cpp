@@ -8,17 +8,20 @@
 #include "GameWindow.hpp"
 #include "Supervisor.hpp"
 #include "utils.hpp"
+#include <vector>
+#include <memory>
+#include <SDL2/SDL.h>
 
 // Compiled vertex shader
 #include "ff_shbin.h"
-static DVLB_s* vertex_dvlb;
-static shaderProgram_s program;
-static int uLoc_projection, uLoc_modelView, uLoc_textureMatrix;
+
+#define CLEAR_COLOR 0x68B0D8FF
+
 static void* vbo_data;
 static PrintConsole bottomScreen;
 
 #define POSITION_ATTRIBUTE_INDEX 0
-#define TEX_CORDS_ATTRIBUTE_INDEX 0
+#define TEX_CORDS_ATTRIBUTE_INDEX 1
 #define DIFFUSE_ATTRIBUTE_INDEX 2
 
 #define DISPLAY_TRANSFER_FLAGS \
@@ -30,68 +33,100 @@ GfxInterface *GfxCitro3d::Create(){
 
     GfxCitro3d *interface = new GfxCitro3d();
 
+    return interface;
+}
+
+GfxInterface *GfxCitro3d::Init(){
+
+    GfxCitro3d *self = new GfxCitro3d;
+
     gfxInitDefault();
     C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
 
-    C3D_RenderTarget* target = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
-    C3D_RenderTargetSetOutput(target, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
+    self->target = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+    C3D_SetViewport(0,0,400,240);
+    C3D_RenderTargetSetOutput(self->target, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
 
     consoleInit(GFX_BOTTOM, &bottomScreen);
     consoleSelect(&bottomScreen);
 
-    printf("Hello World");
-
-    return interface;
-}
-
-bool GfxCitro3d::Init(){
-
-    printf("Initializing Graphics");
-
-    ZunMatrix identityMatrix;
+    printf("Graphics Init");
 
     // Create the vertex shader
-    vertex_dvlb = DVLB_ParseFile((u32*)ff_shbin, ff_shbin_size);
-    shaderProgramInit(&program);
-    shaderProgramSetVsh(&program, &vertex_dvlb->DVLE[0]);
-    C3D_BindProgram(&program);
+    self->shader_dvlb = DVLB_ParseFile((u32*)ff_shbin, ff_shbin_size);
+    shaderProgramInit(&self->program);
+    shaderProgramSetVsh(&self->program, &self->shader_dvlb->DVLE[0]);
+    C3D_BindProgram(&self->program);
     C3D_DepthTest(false, GPU_ALWAYS, GPU_WRITE_COLOR);
 
     // Get location of uniforms
-    uLoc_projection = shaderInstanceGetUniformLocation(program.vertexShader, "projection");
-    uLoc_modelView = shaderInstanceGetUniformLocation(program.vertexShader, "modelView");
-    uLoc_textureMatrix = shaderInstanceGetUniformLocation(program.vertexShader, "textureMatrix");
+    self->uLoc_projection = shaderInstanceGetUniformLocation(self->program.vertexShader, "projection");
+    self->uLoc_modelView = shaderInstanceGetUniformLocation(self->program.vertexShader, "modelView");
+    self->uLoc_textureMatrix = shaderInstanceGetUniformLocation(self->program.vertexShader, "textureMatrix");
 
-    C3D_AttrInfo* attrInfo = C3D_GetAttrInfo();
-    AttrInfo_Init(attrInfo);
-    AttrInfo_AddLoader(attrInfo, 0, GPU_FLOAT, 3); //v0 position
-    AttrInfo_AddLoader(attrInfo, 1, GPU_FLOAT, 2); //v1 texCords
-    AttrInfo_AddLoader(attrInfo, 2, GPU_FLOAT, 1); // diffuse
+    Mtx_Identity(&self->modelMatrix);
+    Mtx_Identity(&self->viewMatrix);
+    Mtx_Identity(&self->projectionMatrix);
+    Mtx_Identity(&self->textureMatrixMatrix);
+    Mtx_Identity(&self->modelViewMatrix);
+
+    self->attrInfo = C3D_GetAttrInfo();
+    AttrInfo_Init(self->attrInfo);
+    AttrInfo_AddLoader(self->attrInfo, POSITION_ATTRIBUTE_INDEX, GPU_FLOAT, 3); //v0 position
+    AttrInfo_AddLoader(self->attrInfo, TEX_CORDS_ATTRIBUTE_INDEX, GPU_FLOAT, 2); //v1 texCords
+    AttrInfo_AddLoader(self->attrInfo, DIFFUSE_ATTRIBUTE_INDEX, GPU_UNSIGNED_BYTE, 4); // diffuse
 
     // Setup the Buffer
     //vbo_data = linearAlloc()
 
-    return true;
+	self->env = C3D_GetTexEnv(0);
+	C3D_TexEnvInit(self->env);
+	C3D_TexEnvSrc(self->env, C3D_Both, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR);
+	C3D_TexEnvFunc(self->env, C3D_Both, GPU_REPLACE);
+
+    C3D_TexEnvColor(self->env, 0xFF0000FF);
+
+    return self;
 }   
 
 void GfxCitro3d::Exit(){
-
+    C3D_Fini();
+    gfxExit();
 }
 
 void GfxCitro3d::SetFogRange(f32 nearPlane, f32 farplane){
-    
+    // Implement later
 }
 
 void GfxCitro3d::SetFogColor(ZunColor color){
-    
+    // Implement later
 }
 
 void GfxCitro3d::ToggleVertexAttribute(u8 attr, bool enable){
-    
+    if (attr & VERTEX_ATTR_TEX_COORD){
+        useTexCoord = enable;
+    }
+    if (attr & VERTEX_ATTR_DIFFUSE){
+        useDiffuse = enable;
+    }
 }
 
 void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t stride, void *ptr){
-    
+    switch (attr)
+    {
+    case VERTEX_ARRAY_POSITION:
+        this->vertexData = ptr;
+        this->vertexStride = stride;
+        break;
+    case VERTEX_ARRAY_TEX_COORD:
+        this->texCoordData = ptr;
+        this->texCoordStride = stride;
+        break;
+    case VERTEX_ARRAY_DIFFUSE:
+        this->diffuseData = ptr;
+        this->diffuseStride = stride;
+        break;
+    }
 }
 void GfxCitro3d::SetColorOp(TextureOpComponent component, ColorOp op){
     
@@ -101,7 +136,52 @@ void GfxCitro3d::SetTextureFactor(ZunColor){
 }
 
 void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matrix){
-    
+    utils::DebugPrint("Setting transform matrix");
+
+    // Matricies need to be transposed
+    switch (type)
+    {
+    case MATRIX_MODEL:
+        for (int i = 0; i < 4; i++)
+        {
+            this->modelViewMatrix.r[i].x = matrix.m[0][i];
+            this->modelViewMatrix.r[i].y = matrix.m[1][i];
+            this->modelViewMatrix.r[i].z = matrix.m[2][i];
+            this->modelViewMatrix.r[i].w = matrix.m[3][i];
+        }
+        break;
+    case MATRIX_VIEW:
+        for (int i = 0; i < 4; i++)
+        {
+            this->modelViewMatrix.r[i].x = matrix.m[0][i];
+            this->modelViewMatrix.r[i].y = matrix.m[1][i];
+            this->modelViewMatrix.r[i].z = matrix.m[2][i];
+            this->modelViewMatrix.r[i].w = matrix.m[3][i];
+        }
+        break;
+    case MATRIX_PROJECTION:
+        for (int i = 0; i < 4; i++)
+        {
+            this->projectionMatrix.r[i].x = matrix.m[0][i];
+            this->projectionMatrix.r[i].y = matrix.m[1][i];
+            this->projectionMatrix.r[i].z = matrix.m[2][i];
+            this->projectionMatrix.r[i].w = matrix.m[3][i];
+            // this->projectionMatrix.r[i].x = matrix.m[i][0];
+            // this->projectionMatrix.r[i].y = matrix.m[i][1];
+            // this->projectionMatrix.r[i].z = matrix.m[i][2];
+            // this->projectionMatrix.r[i].w = matrix.m[i][3];
+        }
+        break;
+    case MATRIX_TEXTURE:
+        for (int i = 0; i < 4; i++)
+        {
+            this->textureMatrixMatrix.r[i].x = matrix.m[0][i];
+            this->textureMatrixMatrix.r[i].y = matrix.m[1][i];
+            this->textureMatrixMatrix.r[i].z = matrix.m[2][i];
+            this->textureMatrixMatrix.r[i].w = matrix.m[3][i];
+        }
+        break;
+    }
 }
 
 void GfxCitro3d::SetTextureFilter(){
@@ -109,19 +189,30 @@ void GfxCitro3d::SetTextureFilter(){
 }
 
 void GfxCitro3d::GetViewport(u32 *viewport){
-    
+    for (int i = 0; i < 4; i++)
+    {
+        viewport[i] = this->viewport3ds[i];
+    }
 }
 
 void GfxCitro3d::GetDepthRange(f32 *depthRange){
-    
+    depthRange[0] = this->depthNear3ds;
+    depthRange[1] = this->depthFar3ds;
 }
 
 void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){
-    
+    utils::DebugPrint("Set Viewport");
+    viewport3ds[0] = x;
+    viewport3ds[1] = y;
+    viewport3ds[2] = width;
+    viewport3ds[3] = height;
+
+    C3D_SetViewport(x, y, width, height);
 }
 
-void GfxCitro3d::SetDepthRange(f32 nearPlan, f32 farPlane){
-    
+void GfxCitro3d::SetDepthRange(f32 nearPlane, f32 farPlane){
+    depthNear3ds = nearPlane;
+    depthFar3ds = farPlane;
 }
 
 void GfxCitro3d::Enable(Capabilities cap){
@@ -153,11 +244,31 @@ void GfxCitro3d::SetClearColor(f32 r, f32 g, f32 b, f32 a){
 }
 
 GfxTextureHandle GfxCitro3d::CreateTexture(){
-    
+    std::unique_ptr<Texture3ds> texture = std::unique_ptr<Texture3ds>(new Texture3ds());
+
+    u32 id;
+    if (!this->freeTextures3ds.empty())
+    {
+        id = this->freeTextures3ds.back();
+        this->freeTextures3ds.pop_back();
+        this->textures3ds[id] = std::move(texture);
+    }
+    else
+    {
+        id = this->textures3ds.size();
+        this->textures3ds.push_back(std::move(texture));
+    }
+
+    return {id};
 }
 
-void GfxCitro3d::BindTexture(GfxTextureHandle handel){
-
+void GfxCitro3d::BindTexture(GfxTextureHandle handle){
+    if (handle >= this->textures3ds.size())
+        return;
+    if (!this->textures3ds[handle.id])
+        return;
+    C3D_TexBind(0, &this->boundTexture3ds->texObject);
+    this->boundTexture3ds = this->textures3ds[handle.id].get();
 }
 
 void GfxCitro3d::SetContextFlags(){
@@ -168,28 +279,111 @@ void GfxCitro3d::Clear(u32 clearBits){
 
 }
 
-void GfxCitro3d::DeleteTexture(GfxTextureHandle handel){
-    
+void GfxCitro3d::DeleteTexture(GfxTextureHandle handle){
+    if (handle.id >= textures3ds.size())
+        return;
+    if (!textures3ds[handle.id])
+        return;
+    textures3ds[handle.id].reset();
+    freeTextures3ds.push_back(handle.id);
+}
+
+inline SDL_PixelFormatEnum GetSDLPixelFormat(PixelFormat fmt, PixelDataType type)
+{
+    switch (type)
+    {
+    case PIXEL_UNSIGNED_BYTE:
+        if (fmt == PIXEL_RGB)
+            return SDL_PIXELFORMAT_RGB24;
+        else
+            return SDL_PIXELFORMAT_RGBA32;
+    case PIXEL_UNSIGNED_SHORT_4_4_4_4:
+        return SDL_PIXELFORMAT_RGBA4444;
+    case PIXEL_UNSIGNED_SHORT_5_5_5_1:
+        return SDL_PIXELFORMAT_RGBA5551;
+    case PIXEL_UNSIGNED_SHORT_5_6_5:
+        return SDL_PIXELFORMAT_RGB565;
+    }
 }
 
 void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDataType type, const void *data){
-    
+    if (this->boundTexture3ds)
+    {
+        u32 bpp = 2;
+        if (type == PIXEL_UNSIGNED_BYTE)
+        {
+            if (fmt == PIXEL_RGB)
+                bpp = 3;
+            else
+                bpp = 4;
+        }
+        boundTexture3ds->texels.resize(width * height);
+        if (data)
+            SDL_ConvertPixels(width, height, GetSDLPixelFormat(fmt, type), data, width * bpp, SDL_PIXELFORMAT_ARGB8888,
+                              boundTexture3ds->texels.data(), width * sizeof(u32));
+        this->boundTexture3ds->width = width;
+        this->boundTexture3ds->height = height;
+        this->boundTexture3ds->format = fmt;
+        this->boundTexture3ds->type = type;
+
+        C3D_TexInit(&this->boundTexture3ds->texObject, width, height, GPU_RGBA8);
+        // C3D_TexUpload(&this->boundTexture3ds->texObject,  this->boundTexture3ds->texels.data());
+        // C3D_TexBind(0, &this->boundTexture3ds->texObject);
+    }
 }
 
 void GfxCitro3d::SetTextureSubImage(i32 xoffset, i32 yoffset, i32 width, i32 height, const void *data){
-    
+    utils::DebugPrint("Setting Texture SubImage");
+    if (this->boundTexture3ds)
+    {
+        SDL_ConvertPixels(width, height, SDL_PIXELFORMAT_RGB24, data, width * 3, SDL_PIXELFORMAT_ARGB8888,
+                          boundTexture3ds->texels.data() + (yoffset * boundTexture3ds->width) + xoffset,
+                          boundTexture3ds->width * sizeof(u32));
+
+        C3D_TexUpload(&this->boundTexture3ds->texObject,  data);
+    }
+
 }
 
 void GfxCitro3d::ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pixels){
-    
+    u16 width_gfx = static_cast<u16>(width);
+    u16 height_gfx = static_cast<u16>(height);
+
+    u8 *dst = (u8 *)pixels;
+
+    u8* fb = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &width_gfx, &height_gfx);
+
+    i32 pitch = width*4;
+
+    for (i32 row = 0; row < height; row++){
+        const u8 *src = (u8 *)fb + ((GAME_WINDOW_HEIGHT - 1 - (y+row)) * GAME_WINDOW_WIDTH + x)*4;
+        memcpy(dst + row * pitch, src, pitch);
+    }
+
 }
 
 void GfxCitro3d::SwapBuffers(){
 
 }
 
+inline void PrintMatrix(const char* name, const C3D_Mtx& matrix)
+{
+    printf("%s:\n", name);
 
-void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count){
+    for (int row = 0; row < 4; row++)
+    {
+        printf("  [% .6f % .6f % .6f % .6f]\n",
+               matrix.r[row].x,
+               matrix.r[row].y,
+               matrix.r[row].z,
+               matrix.r[row].w);
+    }
+}
+
+void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
+{
+
+    //printf("Sending over triangles\n");
 
     GPU_Primitive_t C3DPrim;
 
@@ -202,5 +396,260 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count){
         C3DPrim = GPU_TRIANGLES;
         break;
     }
+
+    C3D_BufInfo* bufInfo = C3D_GetBufInfo();
+    BufInfo_Init(bufInfo);
+
+    size_t positionSize =
+    (count - 1) * vertexStride + 3 * sizeof(float);
+
+    size_t texcoordSize =
+        (count - 1) * texCoordStride + 2 * sizeof(float);
+
+    vbo_data_pos = static_cast<float*>(
+        linearAlloc(count * 3 * sizeof(float))
+    );
+
+    vbo_data_texPos = static_cast<float*>(
+        linearAlloc(count * 2 * sizeof(float))
+    );
+
+    for (int i = 0; i < count; i++)
+    {
+        memcpy((u8*)vbo_data_pos + i * 3 * sizeof(float),
+            (u8*)vertexData + i * vertexStride,
+            3 * sizeof(float));
+
+        memcpy((u8*)vbo_data_texPos + i * 2 * sizeof(float),
+            (u8*)texCoordData + i * texCoordStride,
+            2 * sizeof(float));
+    }
+
+    vbo_data_diffuse = static_cast<u8*>(
+        linearAlloc(count * 4)
+    );
+
+    if (diffuseData)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            memcpy((u8*)vbo_data_diffuse + i * 4,
+                (u8*)diffuseData + i * diffuseStride,
+                4);
+        }
+    }
+    else
+    {
+        memset(vbo_data_diffuse, 0xFF, count * 4);
+    }
+
+    C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+    C3D_RenderTargetClear(this->target, C3D_CLEAR_ALL, CLEAR_COLOR, 0);
+    C3D_FrameDrawOn(this->target);
+
+    // Mtx_OrthoTilt(
+    // &this->projectionMatrix,
+    // 0.0f, 400.0f,
+    // 240.0f, 0.0f,
+    // 0.0f, 1.0f,
+    // true
+    // );
+
+    //PrintMatrix("Projection", this->projectionMatrix);
+    // PrintMatrix("Modelview", this->modelViewMatrix);
+    // PrintMatrix("Texture", this->textureMatrixMatrix);
+
+    //Mtx_Identity(&this->modelView);
+    Mtx_Identity(&this->textureMatrixMatrix);
+
+    //printf("Sending over uniforms\n");
+
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrix);
+
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
+
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
+
+    BufInfo_Add(bufInfo, vbo_data_pos,3 * sizeof(float), 1, 0x0);
+
+    BufInfo_Add(bufInfo, vbo_data_texPos,2 * sizeof(float), 1, 0x1);
+
+    BufInfo_Add(bufInfo, vbo_data_diffuse,4 * sizeof(u8), 1, 0x2);
+
+
     C3D_DrawArrays(C3DPrim, start, count);
+
+    // C3D_ImmDrawBegin(GPU_TRIANGLES);
+
+    // // Vertex 1
+    // C3D_ImmSendAttrib(200.0f, 200.0f, 0.5f, 1.0f);
+    // C3D_ImmSendAttrib( 0.5f, -0.5f, -0.5f, 1.0f);
+    // C3D_ImmSendAttrib( 0.0f,  0.5f, -0.5f, 1.0f);
+
+    // // Vertex 2
+    // C3D_ImmSendAttrib(100.0f, 400.0f, 0.5f, 1.0f);
+    // C3D_ImmSendAttrib( 0.5f, -0.5f, -0.5f, 1.0f);
+    // C3D_ImmSendAttrib( 0.0f,  0.5f, -0.5f, 1.0f);
+
+    // // Vertex 3
+    // C3D_ImmSendAttrib(300.0f, 40.0f, 0.5f, 1.0f);
+    // C3D_ImmSendAttrib( 0.5f, -0.5f, -0.5f, 1.0f);
+    // C3D_ImmSendAttrib( 0.0f,  0.5f, -0.5f, 1.0f);
+
+    // C3D_ImmDrawEnd();
+
+    C3D_FrameEnd(0);
+    linearFree(vbo_data_pos);
+    linearFree(vbo_data_texPos);
+    linearFree(vbo_data_diffuse);
 }
+
+
+// void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count){
+
+//     utils::DebugPrint("Drawing Frame");
+
+//     // Mtx_OrthoTilt(
+//     // &projectionMatrix,
+//     // 0.0f, 400.0f,
+//     // 240.0f, 0.0f,
+//     // 0.0f, 1.0f,
+//     // true
+//     // );
+
+//     size_t positionSize =
+//     (count - 1) * vertexStride + 3 * sizeof(float);
+
+//     size_t texcoordSize =
+//         (count - 1) * texCoordStride + 2 * sizeof(float);
+
+//     vbo_data_pos = static_cast<float*>(
+//         linearAlloc(count * 3 * sizeof(float))
+//     );
+
+//     vbo_data_texPos = static_cast<float*>(
+//         linearAlloc(count * 2 * sizeof(float))
+//     );
+
+//     for (int i = 0; i < count; i++)
+//     {
+//         memcpy((u8*)vbo_data_pos + i * 3 * sizeof(float),
+//             (u8*)vertexData + i * vertexStride,
+//             3 * sizeof(float));
+
+//         memcpy((u8*)vbo_data_texPos + i * 2 * sizeof(float),
+//             (u8*)texCoordData + i * texCoordStride,
+//             2 * sizeof(float));
+//     }
+
+//     vbo_data_diffuse = static_cast<u8*>(
+//         linearAlloc(count * 4)
+//     );
+
+//     if (diffuseData)
+//     {
+//         for (int i = 0; i < count; i++)
+//         {
+//             memcpy((u8*)vbo_data_diffuse + i * 4,
+//                 (u8*)diffuseData + i * diffuseStride,
+//                 4);
+//         }
+//     }
+//     else
+//     {
+//         memset(vbo_data_diffuse, 0xFF, count * 4);
+//     }
+
+//     int debugCount = 4;
+
+//     // Print out what is being sent to the GPU for debugging
+//     for (int i = 0; i < debugCount; i++)
+//     {
+//         vbo_data_pos[i * 3 + 2] = 0.5f;
+//         printf(
+//             "%d: pos=(%f,%f,%f) "
+//             "tex=(%f,%f) "
+//             "color=(%u,%u,%u,%u)\n",
+//             i,
+
+//             vbo_data_pos[i * 3 + 0],
+//             vbo_data_pos[i * 3 + 1],
+//             vbo_data_pos[i * 3 + 2],
+
+//             vbo_data_texPos[i * 2 + 0],
+//             vbo_data_texPos[i * 2 + 1],
+
+//             vbo_data_diffuse[i * 4 + 0],
+//             vbo_data_diffuse[i * 4 + 1],
+//             vbo_data_diffuse[i * 4 + 2],
+//             vbo_data_diffuse[i * 4 + 3]
+//         );
+//     }
+
+//     C3D_BufInfo* bufInfo = C3D_GetBufInfo();
+//     BufInfo_Init(bufInfo);
+
+//     BufInfo_Add(bufInfo, vbo_data_pos,3 * sizeof(float), 1, 0x0);
+
+//     BufInfo_Add(bufInfo, vbo_data_texPos,2 * sizeof(float), 1, 0x1);
+
+//     BufInfo_Add(bufInfo, vbo_data_diffuse,4 * sizeof(u8), 1, 0x2);
+
+//     GPU_Primitive_t C3DPrim;
+
+//     switch(type)
+//     {
+//     case PRIM_TRIANGLE_STRIP:
+//         C3DPrim = GPU_TRIANGLE_STRIP;
+//         break;
+//     case PRIM_TRIANGLES:
+//         C3DPrim = GPU_TRIANGLES;
+//         break;
+//     }
+
+//     // C3D_Mtx modelView;
+
+//     // Mtx_Identity(&modelMatrix);
+
+//     // Mtx_Multiply(&modelView, &viewMatrix, &modelMatrix);
+
+//     Mtx_OrthoTilt(
+//     &projectionMatrix,
+//     0.0f, 640.0f,
+//     480.0f, 0.0f,
+//     0.0f, 1.0f,
+//     true
+//     );
+
+//     printf(
+//     "projection=%d modelView=%d texture=%d\n",
+//     uLoc_projection,
+//     uLoc_modelView,
+//     uLoc_textureMatrix
+//     );
+
+//     // PrintMatrix("Projection", projectionMatrix);
+//     // PrintMatrix("viewMatrix", modelViewMatrix);
+//     // PrintMatrix("modelMatrix", textureMatrixMatrix);
+
+//     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_projection,&projectionMatrix);
+//     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,uLoc_modelView,&modelViewMatrix);
+//     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,uLoc_textureMatrix,&textureMatrixMatrix);
+
+//     C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+//     C3D_RenderTargetClear(target, C3D_CLEAR_ALL, 0x68B0D8FF,0);
+//     C3D_FrameDrawOn(target);
+//     //C3D_CullFace(GPU_CULL_FRONT_CCW);
+//     C3D_CullFace(GPU_CULL_NONE);
+//     C3D_DrawArrays(C3DPrim, start, count);
+//     //C3D_DrawArrays(GPU_LINES, start, count);// Render a wireframe for testing
+//     C3D_FrameEnd(0);
+
+//     utils::DebugPrint("Finished frame");
+
+//     sleep(1);
+
+//     // linearFree(vbo_data_pos);
+//     // linearFree(vbo_data_texPos);
+//     // linearFree(vbo_data_diffuse);
+// }

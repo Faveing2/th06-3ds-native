@@ -2,9 +2,9 @@
 .fvec projection[4], modelView[4], textureMatrix[4]
 
 ; Inputs
-.alias position v0
-.alias texCords v1
-.alias diffuse v2
+.in position v0
+.in texCords v1
+.in diffuse v2
 
 ; Constants
 .constf myconst(0.0, 1.0, -1.0, -0.5)
@@ -47,7 +47,7 @@
     dp4 outpos.x, projection[0], r3
     dp4 outpos.y, projection[1], r3
     dp4 outpos.z, projection[2], r3
-    dp4 outpos.w, projection[3], r4
+    dp4 outpos.w, projection[3], r3
 
 	; We're finished
 	end
