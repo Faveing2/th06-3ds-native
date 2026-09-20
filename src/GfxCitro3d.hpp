@@ -94,6 +94,8 @@ struct GfxCitro3d : GfxInterface
         float texcoord[2];
         u8 diffuse[4];
 
+        bool first_draw=true;
+
         void *vertexData;
         std::size_t vertexStride;
         void *texCoordData;

@@ -50,7 +50,7 @@ GfxInterface *GfxCitro3d::Init(){
     consoleInit(GFX_BOTTOM, &bottomScreen);
     consoleSelect(&bottomScreen);
 
-    printf("Graphics Init");
+    printf("gfxCitro3d Initialized");
 
     // Create the vertex shader
     self->shader_dvlb = DVLB_ParseFile((u32*)ff_shbin, ff_shbin_size);
@@ -115,14 +115,17 @@ void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t str
     switch (attr)
     {
     case VERTEX_ARRAY_POSITION:
+        utils::DebugPrint("Setting Attribute Position");
         this->vertexData = ptr;
         this->vertexStride = stride;
         break;
     case VERTEX_ARRAY_TEX_COORD:
+        utils::DebugPrint("Setting Attribute Tex CORD");
         this->texCoordData = ptr;
         this->texCoordStride = stride;
         break;
     case VERTEX_ARRAY_DIFFUSE:
+        utils::DebugPrint("Setting Attribute Diffuse");
         this->diffuseData = ptr;
         this->diffuseStride = stride;
         break;
@@ -263,11 +266,12 @@ GfxTextureHandle GfxCitro3d::CreateTexture(){
 }
 
 void GfxCitro3d::BindTexture(GfxTextureHandle handle){
+    utils::DebugPrint("Binding Texture");
     if (handle >= this->textures3ds.size())
         return;
     if (!this->textures3ds[handle.id])
         return;
-    C3D_TexBind(0, &this->boundTexture3ds->texObject);
+    //C3D_TexBind(0, &this->boundTexture3ds->texObject);
     this->boundTexture3ds = this->textures3ds[handle.id].get();
 }
 
@@ -305,43 +309,98 @@ inline SDL_PixelFormatEnum GetSDLPixelFormat(PixelFormat fmt, PixelDataType type
         return SDL_PIXELFORMAT_RGB565;
     }
 }
+static size_t MortonIndex8(int x, int y)
+{
+    return
+        ((x & 1)      ) |
+        ((y & 1) << 1 ) |
+        ((x & 2) << 1 ) |
+        ((y & 2) << 2 ) |
+        ((x & 4) << 2 ) |
+        ((y & 4) << 3 );
+}
+
+inline void ConvertLinearToPicaRGBA8(
+    const u32* source,
+    u32* destination,
+    int width,
+    int height
+) {
+    const int tilesAcross = width / 8;
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            const int tileX = x / 8;
+            const int tileY = y / 8;
+
+            const int localX = x % 8;
+            const int localY = y % 8;
+
+            const size_t sourceIndex =
+                y * width + x;
+
+            const size_t tileIndex =
+                tileY * tilesAcross + tileX;
+
+            const size_t destinationIndex =
+                tileIndex * 64 +
+                MortonIndex8(localX, localY);
+
+            destination[destinationIndex] =
+                source[sourceIndex];
+        }
+    }
+}
 
 void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDataType type, const void *data){
+    utils::DebugPrint("Setting Texture Image");
     if (this->boundTexture3ds)
     {
-        u32 bpp = 2;
-        if (type == PIXEL_UNSIGNED_BYTE)
-        {
-            if (fmt == PIXEL_RGB)
-                bpp = 3;
-            else
-                bpp = 4;
-        }
-        boundTexture3ds->texels.resize(width * height);
-        if (data)
-            SDL_ConvertPixels(width, height, GetSDLPixelFormat(fmt, type), data, width * bpp, SDL_PIXELFORMAT_ARGB8888,
-                              boundTexture3ds->texels.data(), width * sizeof(u32));
-        this->boundTexture3ds->width = width;
-        this->boundTexture3ds->height = height;
-        this->boundTexture3ds->format = fmt;
-        this->boundTexture3ds->type = type;
+        // std::vector<u32> linear(width * height);
+        // std::vector<u32> tiled(width * height);
+        // u32 bpp = 2;
+        // if (type == PIXEL_UNSIGNED_BYTE)
+        // {
+        //     if (fmt == PIXEL_RGB)
+        //         bpp = 3;
+        //     else
+        //         bpp = 4;
+        // }
+        // boundTexture3ds->texels.resize(width * height);
+        // if (data){
+        //     utils::DebugPrint("Writing data to texture");
+        //     SDL_ConvertPixels(width, height, GetSDLPixelFormat(fmt, type), data, width * bpp, SDL_PIXELFORMAT_ARGB8888,
+        //                       linear.data(), width * sizeof(u32));
+        //     ConvertLinearToPicaRGBA8(
+        //         linear.data(),
+        //         tiled.data(),
+        //         width,
+        //         height
+        //     );
+        // }
+        // this->boundTexture3ds->width = width;
+        // this->boundTexture3ds->height = height;
+        // this->boundTexture3ds->format = fmt;
+        // this->boundTexture3ds->type = type;
 
-        C3D_TexInit(&this->boundTexture3ds->texObject, width, height, GPU_RGBA8);
-        // C3D_TexUpload(&this->boundTexture3ds->texObject,  this->boundTexture3ds->texels.data());
-        // C3D_TexBind(0, &this->boundTexture3ds->texObject);
+        // C3D_TexInit(&this->boundTexture3ds->texObject, width, height, GPU_RGBA8);
+        // C3D_TexUpload(&this->boundTexture3ds->texObject, tiled.data());
+        // C3D_TexFlush(&this->boundTexture3ds->texObject);
     }
 }
 
 void GfxCitro3d::SetTextureSubImage(i32 xoffset, i32 yoffset, i32 width, i32 height, const void *data){
     utils::DebugPrint("Setting Texture SubImage");
-    if (this->boundTexture3ds)
-    {
-        SDL_ConvertPixels(width, height, SDL_PIXELFORMAT_RGB24, data, width * 3, SDL_PIXELFORMAT_ARGB8888,
-                          boundTexture3ds->texels.data() + (yoffset * boundTexture3ds->width) + xoffset,
-                          boundTexture3ds->width * sizeof(u32));
+    // if (this->boundTexture3ds)
+    // {
+    //     SDL_ConvertPixels(width, height, SDL_PIXELFORMAT_RGB24, data, width * 3, SDL_PIXELFORMAT_ARGB8888,
+    //                       boundTexture3ds->texels.data() + (yoffset * boundTexture3ds->width) + xoffset,
+    //                       boundTexture3ds->width * sizeof(u32));
 
-        C3D_TexUpload(&this->boundTexture3ds->texObject,  data);
-    }
+    //     //C3D_TexUpload(&this->boundTexture3ds->texObject,  data);
+    // }
 
 }
 
@@ -363,7 +422,10 @@ void GfxCitro3d::ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pix
 }
 
 void GfxCitro3d::SwapBuffers(){
-
+    utils::DebugPrint("Swapping buffers");
+    this->first_draw = true;
+    C3D_FrameEnd(0);
+    //sleep(1);
 }
 
 inline void PrintMatrix(const char* name, const C3D_Mtx& matrix)
@@ -383,7 +445,7 @@ inline void PrintMatrix(const char* name, const C3D_Mtx& matrix)
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
 
-    //printf("Sending over triangles\n");
+    utils::DebugPrint("Draw call\n");
 
     GPU_Primitive_t C3DPrim;
 
@@ -397,55 +459,59 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         break;
     }
 
-    C3D_BufInfo* bufInfo = C3D_GetBufInfo();
-    BufInfo_Init(bufInfo);
+    // C3D_BufInfo* bufInfo = C3D_GetBufInfo();
+    // BufInfo_Init(bufInfo);
 
-    size_t positionSize =
-    (count - 1) * vertexStride + 3 * sizeof(float);
+    // size_t positionSize =
+    // (count - 1) * vertexStride + 3 * sizeof(float);
 
-    size_t texcoordSize =
-        (count - 1) * texCoordStride + 2 * sizeof(float);
+    // size_t texcoordSize =
+    //     (count - 1) * texCoordStride + 2 * sizeof(float);
 
-    vbo_data_pos = static_cast<float*>(
-        linearAlloc(count * 3 * sizeof(float))
-    );
+    // vbo_data_pos = static_cast<float*>(
+    //     linearAlloc(count * 3 * sizeof(float))
+    // );
 
-    vbo_data_texPos = static_cast<float*>(
-        linearAlloc(count * 2 * sizeof(float))
-    );
+    // vbo_data_texPos = static_cast<float*>(
+    //     linearAlloc(count * 2 * sizeof(float))
+    // );
 
-    for (int i = 0; i < count; i++)
-    {
-        memcpy((u8*)vbo_data_pos + i * 3 * sizeof(float),
-            (u8*)vertexData + i * vertexStride,
-            3 * sizeof(float));
+    // for (int i = 0; i < count; i++)
+    // {
+    //     memcpy((u8*)vbo_data_pos + i * 3 * sizeof(float),
+    //         (u8*)vertexData + i * vertexStride,
+    //         3 * sizeof(float));
 
-        memcpy((u8*)vbo_data_texPos + i * 2 * sizeof(float),
-            (u8*)texCoordData + i * texCoordStride,
-            2 * sizeof(float));
+    //     memcpy((u8*)vbo_data_texPos + i * 2 * sizeof(float),
+    //         (u8*)texCoordData + i * texCoordStride,
+    //         2 * sizeof(float));
+    // }
+
+    // vbo_data_diffuse = static_cast<u8*>(
+    //     linearAlloc(count * 4)
+    // );
+
+    // if (diffuseData)
+    // {
+    //     for (int i = 0; i < count; i++)
+    //     {
+    //         memcpy((u8*)vbo_data_diffuse + i * 4,
+    //             (u8*)diffuseData + i * diffuseStride,
+    //             4);
+    //     }
+    // }
+    // else
+    // {
+    //     memset(vbo_data_diffuse, 0xFF, count * 4);
+    // }
+
+    if(this->first_draw){
+        utils::DebugPrint("First draw");
+        C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+        C3D_RenderTargetClear(this->target, C3D_CLEAR_ALL, CLEAR_COLOR, 0);
+        C3D_FrameDrawOn(this->target);
+        this->first_draw = false;
     }
-
-    vbo_data_diffuse = static_cast<u8*>(
-        linearAlloc(count * 4)
-    );
-
-    if (diffuseData)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            memcpy((u8*)vbo_data_diffuse + i * 4,
-                (u8*)diffuseData + i * diffuseStride,
-                4);
-        }
-    }
-    else
-    {
-        memset(vbo_data_diffuse, 0xFF, count * 4);
-    }
-
-    C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-    C3D_RenderTargetClear(this->target, C3D_CLEAR_ALL, CLEAR_COLOR, 0);
-    C3D_FrameDrawOn(this->target);
 
     // Mtx_OrthoTilt(
     // &this->projectionMatrix,
@@ -460,7 +526,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     // PrintMatrix("Texture", this->textureMatrixMatrix);
 
     //Mtx_Identity(&this->modelView);
-    Mtx_Identity(&this->textureMatrixMatrix);
+    //Mtx_Identity(&this->textureMatrixMatrix);
 
     //printf("Sending over uniforms\n");
 
@@ -470,16 +536,14 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
 
-    BufInfo_Add(bufInfo, vbo_data_pos,3 * sizeof(float), 1, 0x0);
+    // BufInfo_Add(bufInfo, vbo_data_pos,3 * sizeof(float), 1, 0x0);
 
-    BufInfo_Add(bufInfo, vbo_data_texPos,2 * sizeof(float), 1, 0x1);
+    // BufInfo_Add(bufInfo, vbo_data_texPos,2 * sizeof(float), 1, 0x1);
 
-    BufInfo_Add(bufInfo, vbo_data_diffuse,4 * sizeof(u8), 1, 0x2);
+    // BufInfo_Add(bufInfo, vbo_data_diffuse,4 * sizeof(u8), 1, 0x2);
 
 
-    C3D_DrawArrays(C3DPrim, start, count);
-
-    // C3D_ImmDrawBegin(GPU_TRIANGLES);
+    // C3D_DrawArrays(C3DPrim, start, count);
 
     // // Vertex 1
     // C3D_ImmSendAttrib(200.0f, 200.0f, 0.5f, 1.0f);
@@ -496,12 +560,19 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     // C3D_ImmSendAttrib( 0.5f, -0.5f, -0.5f, 1.0f);
     // C3D_ImmSendAttrib( 0.0f,  0.5f, -0.5f, 1.0f);
 
-    // C3D_ImmDrawEnd();
+    const float* vertexDataFloat = static_cast<const float*>(vertexData);
+    const float* texPosFloat = static_cast<const float*>(texCoordData);
+    const u8* diffuseFloat = static_cast<const u8*>(diffuseData);
 
-    C3D_FrameEnd(0);
-    linearFree(vbo_data_pos);
-    linearFree(vbo_data_texPos);
-    linearFree(vbo_data_diffuse);
+    C3D_ImmDrawBegin(C3DPrim);
+    for (int i = 0; i <= count; i++)
+    {
+        C3D_ImmSendAttrib(vertexDataFloat[i * 3 + 0], vertexDataFloat[i * 3 + 1], vertexDataFloat[i * 3 + 2], 1.0f);
+        C3D_ImmSendAttrib(texPosFloat[i * 3 + 0], texPosFloat[i * 3 + 1], 1.0f, 1.0f);
+        //C3D_ImmSendAttrib(diffuseFloat[i * 4 + 0], diffuseFloat[i * 4 + 1], diffuseFloat[i * 4 + 2], diffuseFloat[i * 4 + 3]);
+        C3D_ImmSendAttrib(256,256,256,256); // Diffuse data is not being set so lets just submit white for now
+    }
+    C3D_ImmDrawEnd();
 }
 
 
