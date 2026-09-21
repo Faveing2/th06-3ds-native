@@ -86,6 +86,8 @@ GfxInterface *GfxCitro3d::Init(){
 
     C3D_TexEnvColor(self->env, 0xFF0000FF);
 
+    C3D_CullFace(GPU_CULL_NONE);
+
     return self;
 }   
 
@@ -271,7 +273,7 @@ void GfxCitro3d::BindTexture(GfxTextureHandle handle){
         return;
     if (!this->textures3ds[handle.id])
         return;
-    //C3D_TexBind(0, &this->boundTexture3ds->texObject);
+    C3D_TexBind(0, &this->boundTexture3ds->texObject);
     this->boundTexture3ds = this->textures3ds[handle.id].get();
 }
 
@@ -309,6 +311,18 @@ inline SDL_PixelFormatEnum GetSDLPixelFormat(PixelFormat fmt, PixelDataType type
         return SDL_PIXELFORMAT_RGB565;
     }
 }
+static int NextPowerOfTwo(int value)
+{
+    int result = 1;
+
+    while (result < value)
+        result <<= 1;
+
+    // Citro3D requires texture dimensions of at least 8.
+    return std::max(result, 8);
+}
+
+// Morton order inside an 8x8 tile.
 static size_t MortonIndex8(int x, int y)
 {
     return
@@ -320,44 +334,117 @@ static size_t MortonIndex8(int x, int y)
         ((y & 4) << 3 );
 }
 
-inline void ConvertLinearToPicaRGBA8(
-    const u32* source,
-    u32* destination,
-    int width,
-    int height
+bool UploadRGBTexture(
+    C3D_Tex* texture,
+    const void* data,
+    u32 width,
+    u32 height,
+    size_t sourcePitch
 ) {
-    const int tilesAcross = width / 8;
+    if (!texture || !data || width <= 0 || height <= 0)
+        return false;
 
-    for (int y = 0; y < height; y++)
+    const int textureWidth  = NextPowerOfTwo(width);
+    const int textureHeight = NextPowerOfTwo(height);
+
+    const auto* source =
+        static_cast<const uint8_t*>(data);
+
+    const int tilesAcross = textureWidth / 8;
+
+    // Four bytes per pixel: R, G, B, A.
+    std::vector<uint8_t> tiledPixels(
+        static_cast<size_t>(textureWidth) *
+        textureHeight *
+        4
+    );
+
+    for (u32 y = 0; y < textureHeight; y++)
     {
-        for (int x = 0; x < width; x++)
+        // Clamp padding to the final source row.
+        const int sourceY =
+            std::min(y, height - 1);
+
+        for (u32 x = 0; x < textureWidth; x++)
         {
+            // Clamp padding to the final source column.
+            const int sourceX =
+                std::min(x, width - 1);
+
+            const uint8_t* sourcePixel =
+                source +
+                sourceY * sourcePitch +
+                sourceX * 3;
+
             const int tileX = x / 8;
             const int tileY = y / 8;
 
             const int localX = x % 8;
             const int localY = y % 8;
 
-            const size_t sourceIndex =
-                y * width + x;
-
             const size_t tileIndex =
-                tileY * tilesAcross + tileX;
+                static_cast<size_t>(tileY) * tilesAcross +
+                tileX;
 
-            const size_t destinationIndex =
-                tileIndex * 64 +
+            const size_t pixelInTile =
                 MortonIndex8(localX, localY);
 
-            destination[destinationIndex] =
-                source[sourceIndex];
+            const size_t destinationPixel =
+                (tileIndex * 64 + pixelInTile) * 4;
+
+            tiledPixels[destinationPixel + 0] = sourcePixel[0]; // R
+            tiledPixels[destinationPixel + 1] = sourcePixel[1]; // G
+            tiledPixels[destinationPixel + 2] = sourcePixel[2]; // B
+            tiledPixels[destinationPixel + 3] = 255;            // A
         }
     }
+
+    if (!C3D_TexInit(
+            texture,
+            textureWidth,
+            textureHeight,
+            GPU_RGBA8))
+    {
+        return false;
+    }
+
+    C3D_TexUpload(texture, tiledPixels.data());
+    C3D_TexFlush(texture);
+
+    C3D_TexSetFilter(
+        texture,
+        GPU_LINEAR,
+        GPU_LINEAR
+    );
+
+    C3D_TexSetWrap(
+        texture,
+        GPU_CLAMP_TO_EDGE,
+        GPU_CLAMP_TO_EDGE
+    );
+
+    return true;
 }
 
 void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDataType type, const void *data){
     utils::DebugPrint("Setting Texture Image");
     if (this->boundTexture3ds)
     {
+        u32 bpp = 2;
+        if (type == PIXEL_UNSIGNED_BYTE)
+        {
+            if (fmt == PIXEL_RGB)
+                bpp = 3;
+            else
+                bpp = 4;
+        }
+
+        this->boundTexture3ds->width = width;
+        this->boundTexture3ds->height = height;
+        this->boundTexture3ds->format = fmt;
+        this->boundTexture3ds->type = type;
+
+        UploadRGBTexture(&this->boundTexture3ds->texObject, data, width, height, bpp);
         // std::vector<u32> linear(width * height);
         // std::vector<u32> tiled(width * height);
         // u32 bpp = 2;
@@ -564,13 +651,46 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     const float* texPosFloat = static_cast<const float*>(texCoordData);
     const u8* diffuseFloat = static_cast<const u8*>(diffuseData);
 
+    //int vertexWidth = static_cast<int>vertexStride)
+
+    // int total_count = count * (static_cast<int>(vertexStride) + static_cast<int>(texCoordStride));
+
+    // printf("Totalcount %i", count*(3+2));
+
+    // for (int i = 0; i <= count*(3+2); i++){
+    //     C3D_ImmSendAttrib(vertexDataFloat[i + 0], vertexDataFloat[i + 1], vertexDataFloat[i + 2], 1.0f);
+    //     C3D_ImmSendAttrib(vertexDataFloat[i + 3], vertexDataFloat[i + 4], 1.0f, 1.0f);
+    //     C3D_ImmSendAttrib(256,256,256,256);
+
+    //     printf("pos=(%f,%f,%f)",vertexDataFloat[i + 0],vertexDataFloat[i + 1],vertexDataFloat[i + 2]);
+    //     printf("tex=(%f,%f)",vertexDataFloat[i + 3],vertexDataFloat[i + 4]);
+    // }
+
+    // printf("Vertex.x, %f\n", vertexDataFloat[0]);
+    // printf("Vertex.y, %f\n", vertexDataFloat[1]);
+    // printf("Vertex.z, %f\n", vertexDataFloat[2]);
+    // printf("Vertex.r, %f\n", vertexDataFloat[3]);
+    // printf("Vertex.h, %f\n", vertexDataFloat[4]);
+    // printf("Vertex.w, %f\n", vertexDataFloat[5]);
+    // sleep(5);
+    // printf("Vertex.x, %f\n", vertexDataFloat[6]);
+    // printf("Vertex.y, %f\n", vertexDataFloat[7]);
+    // printf("Vertex.z, %f\n", vertexDataFloat[8]);
+    // printf("Vertex.r, %f\n", vertexDataFloat[9]);
+    // printf("Vertex.h, %f\n", vertexDataFloat[10]);
+    // printf("Vertex.w, %f\n", vertexDataFloat[11]);
+    // sleep(5);
+
     C3D_ImmDrawBegin(C3DPrim);
-    for (int i = 0; i <= count; i++)
+    for (int i = 0; i < count; i++)
     {
-        C3D_ImmSendAttrib(vertexDataFloat[i * 3 + 0], vertexDataFloat[i * 3 + 1], vertexDataFloat[i * 3 + 2], 1.0f);
-        C3D_ImmSendAttrib(texPosFloat[i * 3 + 0], texPosFloat[i * 3 + 1], 1.0f, 1.0f);
+        C3D_ImmSendAttrib(vertexDataFloat[i * 6 + 0], vertexDataFloat[i * 6 + 1], vertexDataFloat[i * 6 + 2], 1.0f);
+        C3D_ImmSendAttrib(vertexDataFloat[i * 6 + 4], vertexDataFloat[i * 6 + 5], 1.0f, 1.0f);
+        // printf("pos=(%f,%f,%f)",vertexDataFloat[i * 6 + 0],vertexDataFloat[i * 6 + 1],vertexDataFloat[i * 6 + 2]);
+        // printf("tex=(%f,%f)",vertexDataFloat[i * 6 + 4],vertexDataFloat[i * 6 + 5]);
+
         //C3D_ImmSendAttrib(diffuseFloat[i * 4 + 0], diffuseFloat[i * 4 + 1], diffuseFloat[i * 4 + 2], diffuseFloat[i * 4 + 3]);
-        C3D_ImmSendAttrib(256,256,256,256); // Diffuse data is not being set so lets just submit white for now
+        C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f); // Diffuse data is not being set so lets just submit white for now
     }
     C3D_ImmDrawEnd();
 }

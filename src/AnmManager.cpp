@@ -995,7 +995,7 @@ ZunResult AnmManager::AddSpriteToDrawBuffer(VertexTex1Xyzrhw *vertices)
     this->vertexBufferEndPtr[0] = vertices[0];
     this->vertexBufferEndPtr[1] = vertices[1];
     this->vertexBufferEndPtr[2] = vertices[2];
-    this->vertexBufferEndPtr[3] = vertices[1];
+    this->vertexBufferEndPtr[3] = vertices[1]; // Set this to zero to fix culling issues :) ya don't ask how long it took to debug that
     this->vertexBufferEndPtr[4] = vertices[2];
     this->vertexBufferEndPtr[5] = vertices[3];
 
