@@ -9,6 +9,8 @@
 #include "i18n.hpp"
 #include "utils.hpp"
 
+#include <3ds.h>
+
 // DIFFABLE_STATIC(JOYCAPSA, g_JoystickCaps)
 static u16 g_FocusButtonConflictState;
 static u8 *keyboardState;
@@ -51,6 +53,7 @@ u16 Controller::GetControllerInput(u16 buttons)
     //
     if (g_Supervisor.gameController != NULL)
     {
+        //printf("Getting joystick input");
         //        memset(&aa, 0, sizeof(aa));
         //        aa.dwSize = sizeof(JOYINFOEX);
         //        aa.dwFlags = JOY_RETURNALL;
@@ -246,6 +249,7 @@ u16 Controller::GetControllerInput(u16 buttons)
     //        }
     //    }
     //
+    printf("%i", buttons);
     return buttons;
 }
 
@@ -354,8 +358,56 @@ const u8 *Controller::GetControllerState()
     //            return g_ControllerData;
     //        }
     //        memcpy(&g_ControllerData, dijoystate2.rgbButtons, sizeof(dijoystate2.rgbButtons));
+
+    printf("%i", g_ControllerData);
     return g_ControllerData;
     //    }
+}
+
+u16 GetButtons_3DS()
+{
+    hidScanInput();
+
+    u32 held = hidKeysHeld();
+    u16 buttons = 0;
+
+    if (held & KEY_DUP)
+        buttons |= TH_BUTTON_UP;
+
+    if (held & KEY_DDOWN)
+        buttons |= TH_BUTTON_DOWN;
+
+    if (held & KEY_DLEFT)
+        buttons |= TH_BUTTON_LEFT;
+
+    if (held & KEY_DRIGHT)
+        buttons |= TH_BUTTON_RIGHT;
+
+    if (held & KEY_A)
+        buttons |= TH_BUTTON_SHOOT;
+
+    if (held & KEY_B)
+        buttons |= TH_BUTTON_BOMB;
+
+    if (held & KEY_L)
+        buttons |= TH_BUTTON_FOCUS;
+
+    if (held & KEY_R)
+        buttons |= TH_BUTTON_FOCUS;
+
+    if (held & KEY_START)
+        buttons |= TH_BUTTON_MENU;
+
+    if (held & KEY_SELECT)
+        buttons |= TH_BUTTON_SKIP;
+
+    if (held & KEY_X)
+        buttons |= TH_BUTTON_Q;
+
+    if (held & KEY_Y)
+        buttons |= TH_BUTTON_S;
+
+    return buttons;
 }
 
 u16 Controller::GetInput(void)
@@ -386,17 +438,19 @@ u16 Controller::GetInput(void)
     buttons |= KEYBOARD_KEY_PRESSED(TH_BUTTON_S, SDL_SCANCODE_S);
     buttons |= KEYBOARD_KEY_PRESSED(TH_BUTTON_ENTER, SDL_SCANCODE_RETURN);
 
-    return Controller::GetControllerInput(buttons);
+    //return Controller::GetControllerInput(buttons);
+    return GetButtons_3DS();
 }
 
 void Controller::ResetKeyboard(void)
 {
+    // Keyboardstate isn't working on 3ds, lets update it to be my own
     keyboardState = (u8 *)SDL_GetKeyboardState(NULL);
 
     // Ensure IMEs are disabled so they don't interfer with EoSD input
     //   Doesn't work on Wine :( but hopefully works on Windows?
     //   We both start and stop due to this bug https://github.com/libsdl-org/SDL/issues/13172
     //   Since I can't test on Windows, it's good to be on the safe side
-    SDL_StartTextInput();
-    SDL_StopTextInput();
+    // SDL_StartTextInput();
+    // SDL_StopTextInput();
 }

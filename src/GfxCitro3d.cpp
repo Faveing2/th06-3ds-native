@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 #include <SDL2/SDL.h>
+#include "Controller.hpp"
 
 // Compiled vertex shader
 #include "ff_shbin.h"
@@ -40,7 +41,8 @@ GfxInterface *GfxCitro3d::Init(){
 
     GfxCitro3d *self = new GfxCitro3d;
 
-    gfxInitDefault();
+    //gfxInitDefault();
+    gfxInit(GSP_BGR8_OES, GSP_BGR8_OES, false);
     // Increased the CMD buffer size
     C3D_Init(0x100000);
 
@@ -387,6 +389,13 @@ static bool ValidFloat(float value)
 
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
+    // printf("SDL subsystems: 0x%08x\n", SDL_WasInit(0));
+    // printf("Joysticks: %d\n", SDL_NumJoysticks());
+    // printf(
+    // "Is GameController: %s\n",
+    // SDL_IsGameController(0) ? "yes" : "no"
+    // );
+
     GPU_Primitive_t C3DPrim;
 
     switch(type)

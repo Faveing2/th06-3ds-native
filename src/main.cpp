@@ -36,10 +36,10 @@ int main(int argc, char *argv[])
 
     romfsInit();
 
-    SDL_Log("Starting th06-3ds-native");
-    utils::DebugPrint("Testing DebugPrint");
+    utils::DebugPrint("Starting");
 
-    Controller::ResetKeyboard();
+    // Is controller even initalized??
+    //Controller::ResetKeyboard();
 
     if (g_Supervisor.LoadConfig(TH_CONFIG_FILE) != ZUN_SUCCESS)
     {
@@ -73,18 +73,16 @@ restart:
 
     g_SoundPlayer.InitializeDSound();
     Controller::GetJoystickCaps();
-    #ifndef _3DS
     Controller::ResetKeyboard();
-    #endif
 
     if (Supervisor::RegisterChain() != ZUN_SUCCESS)
     {
         goto stop;
     }
-    if (!g_Supervisor.cfg.windowed)
-    {
-        SDL_ShowCursor(SDL_DISABLE);
-    }
+    // if (!g_Supervisor.cfg.windowed)
+    // {
+    //     SDL_ShowCursor(SDL_DISABLE);
+    // }
 
     g_GameWindow.curFrame = 0;
 
