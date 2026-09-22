@@ -56,13 +56,13 @@ CFLAGS	:=	-g -Wall -O2 -mword-relocations \
 			-ffunction-sections \
 			$(ARCH)
 
-# CFLAGS	+=	$(INCLUDE) -D__3DS__ -D_3DS -D_3DS_DEBUG
+CFLAGS	+=	$(INCLUDE) -D__3DS__ -D_3DS -D_3DS_DEBUG
 
-# CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -D_3DS -D_3DS_DEBUG
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -D_3DS -D_3DS_DEBUG
 
-CFLAGS	+=	$(INCLUDE) -D__3DS__ -D_3DS -O2
+# CFLAGS	+=	$(INCLUDE) -D__3DS__ -D_3DS -O2
 
-CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -D_3DS -O2
+# CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=c++20 -D_3DS -O2
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)

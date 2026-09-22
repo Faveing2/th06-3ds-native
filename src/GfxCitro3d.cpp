@@ -41,7 +41,9 @@ GfxInterface *GfxCitro3d::Init(){
     GfxCitro3d *self = new GfxCitro3d;
 
     gfxInitDefault();
-    C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
+    C3D_Init(0x100000);
+
+    //SDL_Init(SDL_INIT_GAMECONTROLLER);
 
     self->target = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     C3D_SetViewport(0,0,400,240);
@@ -74,7 +76,7 @@ GfxInterface *GfxCitro3d::Init(){
     AttrInfo_Init(self->attrInfo);
     AttrInfo_AddLoader(self->attrInfo, POSITION_ATTRIBUTE_INDEX, GPU_FLOAT, 3); //v0 position
     AttrInfo_AddLoader(self->attrInfo, TEX_CORDS_ATTRIBUTE_INDEX, GPU_FLOAT, 2); //v1 texCords
-    AttrInfo_AddLoader(self->attrInfo, DIFFUSE_ATTRIBUTE_INDEX, GPU_UNSIGNED_BYTE, 4); // diffuse
+    //AttrInfo_AddLoader(self->attrInfo, DIFFUSE_ATTRIBUTE_INDEX, GPU_UNSIGNED_BYTE, 4); // diffuse
 
     // Setup the Buffer
     //vbo_data = linearAlloc()
@@ -87,6 +89,17 @@ GfxInterface *GfxCitro3d::Init(){
     C3D_TexEnvColor(self->env, 0xFF0000FF);
 
     C3D_CullFace(GPU_CULL_NONE);
+
+    Mtx_OrthoTilt(
+    &self->projectionMatrix,
+    0.0f,    // left
+    640.0f,  // right
+    480.0f,    // bottom
+    0.0f,  // top
+    0.0f,    // near
+    1.0f,    // far
+    true     // account for 3DS screen orientation
+    );
 
     return self;
 }   
@@ -117,17 +130,17 @@ void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t str
     switch (attr)
     {
     case VERTEX_ARRAY_POSITION:
-        utils::DebugPrint("Setting Attribute Position");
+        //utils::DebugPrint("Setting Attribute Position");
         this->vertexData = ptr;
         this->vertexStride = stride;
         break;
     case VERTEX_ARRAY_TEX_COORD:
-        utils::DebugPrint("Setting Attribute Tex CORD");
+        //utils::DebugPrint("Setting Attribute Tex CORD");
         this->texCoordData = ptr;
         this->texCoordStride = stride;
         break;
     case VERTEX_ARRAY_DIFFUSE:
-        utils::DebugPrint("Setting Attribute Diffuse");
+        //utils::DebugPrint("Setting Attribute Diffuse");
         this->diffuseData = ptr;
         this->diffuseStride = stride;
         break;
@@ -141,7 +154,7 @@ void GfxCitro3d::SetTextureFactor(ZunColor){
 }
 
 void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matrix){
-    utils::DebugPrint("Setting transform matrix");
+    //utils::DebugPrint("Setting transform matrix");
 
     // Matricies need to be transposed
     switch (type)
@@ -167,10 +180,10 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
     case MATRIX_PROJECTION:
         for (int i = 0; i < 4; i++)
         {
-            this->projectionMatrix.r[i].x = matrix.m[0][i];
-            this->projectionMatrix.r[i].y = matrix.m[1][i];
-            this->projectionMatrix.r[i].z = matrix.m[2][i];
-            this->projectionMatrix.r[i].w = matrix.m[3][i];
+            // this->projectionMatrix.r[i].x = matrix.m[0][i];
+            // this->projectionMatrix.r[i].y = matrix.m[1][i];
+            // this->projectionMatrix.r[i].z = matrix.m[2][i];
+            // this->projectionMatrix.r[i].w = matrix.m[3][i];
             // this->projectionMatrix.r[i].x = matrix.m[i][0];
             // this->projectionMatrix.r[i].y = matrix.m[i][1];
             // this->projectionMatrix.r[i].z = matrix.m[i][2];
@@ -206,13 +219,13 @@ void GfxCitro3d::GetDepthRange(f32 *depthRange){
 }
 
 void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){
-    utils::DebugPrint("Set Viewport");
+    //utils::DebugPrint("Set Viewport");
     viewport3ds[0] = x;
     viewport3ds[1] = y;
     viewport3ds[2] = width;
     viewport3ds[3] = height;
 
-    C3D_SetViewport(x, y, width, height);
+    //C3D_SetViewport(x, y, width, height);
 }
 
 void GfxCitro3d::SetDepthRange(f32 nearPlane, f32 farPlane){
@@ -268,12 +281,12 @@ GfxTextureHandle GfxCitro3d::CreateTexture(){
 }
 
 void GfxCitro3d::BindTexture(GfxTextureHandle handle){
-    utils::DebugPrint("Binding Texture");
+    //utils::DebugPrint("Binding Texture");
     if (handle >= this->textures3ds.size())
         return;
     if (!this->textures3ds[handle.id])
         return;
-    C3D_TexBind(0, &this->boundTexture3ds->texObject);
+    //C3D_TexBind(0, &this->boundTexture3ds->texObject);
     this->boundTexture3ds = this->textures3ds[handle.id].get();
 }
 
@@ -427,7 +440,7 @@ bool UploadRGBTexture(
 }
 
 void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDataType type, const void *data){
-    utils::DebugPrint("Setting Texture Image");
+    //utils::DebugPrint("Setting Texture Image");
     if (this->boundTexture3ds)
     {
         u32 bpp = 2;
@@ -444,7 +457,7 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
         this->boundTexture3ds->format = fmt;
         this->boundTexture3ds->type = type;
 
-        UploadRGBTexture(&this->boundTexture3ds->texObject, data, width, height, bpp);
+        //UploadRGBTexture(&this->boundTexture3ds->texObject, data, width, height, bpp);
         // std::vector<u32> linear(width * height);
         // std::vector<u32> tiled(width * height);
         // u32 bpp = 2;
@@ -479,7 +492,7 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
 }
 
 void GfxCitro3d::SetTextureSubImage(i32 xoffset, i32 yoffset, i32 width, i32 height, const void *data){
-    utils::DebugPrint("Setting Texture SubImage");
+    //utils::DebugPrint("Setting Texture SubImage");
     // if (this->boundTexture3ds)
     // {
     //     SDL_ConvertPixels(width, height, SDL_PIXELFORMAT_RGB24, data, width * 3, SDL_PIXELFORMAT_ARGB8888,
@@ -509,7 +522,7 @@ void GfxCitro3d::ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pix
 }
 
 void GfxCitro3d::SwapBuffers(){
-    utils::DebugPrint("Swapping buffers");
+    //utils::DebugPrint("Swapping buffers");
     this->first_draw = true;
     C3D_FrameEnd(0);
     //sleep(1);
@@ -517,7 +530,7 @@ void GfxCitro3d::SwapBuffers(){
 
 inline void PrintMatrix(const char* name, const C3D_Mtx& matrix)
 {
-    printf("%s:\n", name);
+    //printf("%s:\n", name);
 
     for (int row = 0; row < 4; row++)
     {
@@ -529,10 +542,15 @@ inline void PrintMatrix(const char* name, const C3D_Mtx& matrix)
     }
 }
 
+static bool ValidFloat(float value)
+{
+    return std::isfinite(value);
+}
+
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
 
-    utils::DebugPrint("Draw call\n");
+    //utils::DebugPrint("Draw call\n");
 
     GPU_Primitive_t C3DPrim;
 
@@ -540,10 +558,16 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     {
     case PRIM_TRIANGLE_STRIP:
         C3DPrim = GPU_TRIANGLE_STRIP;
+        return; // GPU_TRIANGLE_STRIP is causing issues with sending incorrect values to the gpu, lets skip for now
         break;
     case PRIM_TRIANGLES:
         C3DPrim = GPU_TRIANGLES;
         break;
+    }
+
+    if(vertexData == nullptr || count <= 0 || count % 3 != 0){
+        printf("BAD vertex");
+        return;
     }
 
     // C3D_BufInfo* bufInfo = C3D_GetBufInfo();
@@ -593,7 +617,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     // }
 
     if(this->first_draw){
-        utils::DebugPrint("First draw");
+        //utils::DebugPrint("First draw");
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         C3D_RenderTargetClear(this->target, C3D_CLEAR_ALL, CLEAR_COLOR, 0);
         C3D_FrameDrawOn(this->target);
@@ -601,11 +625,14 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     }
 
     // Mtx_OrthoTilt(
-    // &this->projectionMatrix,
-    // 0.0f, 400.0f,
-    // 240.0f, 0.0f,
-    // 0.0f, 1.0f,
-    // true
+    //     &projectionMatrix,
+    //     0.0f,    // left
+    //     640.0f,  // right
+    //     480.0f,    // bottom
+    //     0.0f,  // top
+    //     0.0f,    // near
+    //     1.0f,    // far
+    //     true     // account for 3DS screen orientation
     // );
 
     //PrintMatrix("Projection", this->projectionMatrix);
@@ -648,8 +675,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     // C3D_ImmSendAttrib( 0.0f,  0.5f, -0.5f, 1.0f);
 
     const float* vertexDataFloat = static_cast<const float*>(vertexData);
-    const float* texPosFloat = static_cast<const float*>(texCoordData);
-    const u8* diffuseFloat = static_cast<const u8*>(diffuseData);
+    //const u8* diffuseFloat = static_cast<const u8*>(diffuseData);
 
     //int vertexWidth = static_cast<int>vertexStride)
 
@@ -681,16 +707,29 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     // printf("Vertex.w, %f\n", vertexDataFloat[11]);
     // sleep(5);
 
+    // Check buffer health
+    // printf(
+    //     "Command buffer usage: %.2f%%\n",
+    //     C3D_GetCmdBufUsage() * 100.0f
+    // );
+
     C3D_ImmDrawBegin(C3DPrim);
     for (int i = 0; i < count; i++)
     {
+
+        if (!ValidFloat(vertexDataFloat[i * 6 + 0]) || !ValidFloat(vertexDataFloat[i * 6 + 1]) || !ValidFloat(vertexDataFloat[i * 6 + 2]) || !ValidFloat(vertexDataFloat[i * 6 + 4]) || !ValidFloat(vertexDataFloat[i * 6 + 5])){
+            printf("BAD VERTEX");
+            C3D_ImmDrawEnd();
+            return;
+        }
+
         C3D_ImmSendAttrib(vertexDataFloat[i * 6 + 0], vertexDataFloat[i * 6 + 1], vertexDataFloat[i * 6 + 2], 1.0f);
         C3D_ImmSendAttrib(vertexDataFloat[i * 6 + 4], vertexDataFloat[i * 6 + 5], 1.0f, 1.0f);
         // printf("pos=(%f,%f,%f)",vertexDataFloat[i * 6 + 0],vertexDataFloat[i * 6 + 1],vertexDataFloat[i * 6 + 2]);
         // printf("tex=(%f,%f)",vertexDataFloat[i * 6 + 4],vertexDataFloat[i * 6 + 5]);
 
         //C3D_ImmSendAttrib(diffuseFloat[i * 4 + 0], diffuseFloat[i * 4 + 1], diffuseFloat[i * 4 + 2], diffuseFloat[i * 4 + 3]);
-        C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f); // Diffuse data is not being set so lets just submit white for now
+        //C3D_ImmSendAttrib(255,255,255,255); // Diffuse data is not being set so lets just submit white for now
     }
     C3D_ImmDrawEnd();
 }

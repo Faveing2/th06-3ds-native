@@ -187,7 +187,7 @@ void GameWindow::Present()
 
 void GameWindow::CreateGameWindow()
 {
-    SDL_Init(SDL_INIT_GAMECONTROLLER);
+    int test = SDL_Init(SDL_INIT_GAMECONTROLLER);
 
     for (u32 i = 0; i < ARRAY_SIZE(s_RenderBackends); i++)
     {
@@ -198,6 +198,10 @@ void GameWindow::CreateGameWindow()
             break;
         }
         utils::DebugPrint2("Renderer creation for backend %s failed", s_RenderBackends[i].name);
+    }
+
+    if(test !=0){
+        utils::DebugPrint("SDL Gamecontroller error", SDL_GetError());
     }
 
     g_GameWindow.lastActiveAppValue = 1;

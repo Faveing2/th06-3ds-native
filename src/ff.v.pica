@@ -4,7 +4,7 @@
 ; Inputs
 .in position v0
 .in texCords v1
-.in diffuse v2
+;.in diffuse v2
 
 ; Constants
 .constf myconst(0.0, 1.0, -1.0, -0.5)
@@ -14,7 +14,7 @@
 ; Outputs
 .out outpos position
 .out outtc0 texcoord0
-.out outclr color
+;.out outclr color
 
 .proc main
 	; Force the YW component of inpos to be 1.0
@@ -29,7 +29,7 @@
     mov outtc0.zw, myconst.xx
 
     ; Set the diffuse
-    mov outclr, diffuse
+    ;mov outclr, diffuse
 
     ; r1 = vec4(position, 1.0)
     mov r1.xyz, position
