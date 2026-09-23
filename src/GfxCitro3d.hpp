@@ -11,11 +11,12 @@
 
 struct Texture3ds
 {
-    std::vector<u32> texels; // ARGB8888
+    std::vector<u32> texels; // ARGB8888 Not using this rn
     C3D_Tex texObject;
     i32 width, height;
     PixelFormat format;
     PixelDataType type;
+    std::vector<u8> data;
     inline ZunColor GetPixel(i32 x, i32 y);
 };
 
@@ -78,6 +79,8 @@ struct GfxCitro3d : GfxInterface
 
         DVLB_s* vertex_dvlb;
         shaderProgram_s program;
+
+        u32 C3D_clearcolor = 0x68B0D8FF;
 
         C3D_RenderTarget* target;
 

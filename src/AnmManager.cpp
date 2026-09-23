@@ -487,9 +487,10 @@ ZunResult AnmManager::CreateEmptyTexture(i32 textureIdx, u32 width, u32 height, 
     this->textures[textureIdx].height = BitCeil(height);
     this->textures[textureIdx].format = textureFormat;
 
-    g_GfxBackend->SetTextureImage(textures[textureIdx].width, textures[textureIdx].height,
-                                  g_TextureFormatTypeGfxMapping[textureFormat],
-                                  g_TextureFormatTypeMapping[textureFormat], NULL);
+    // Issue: Can you not send me a bunch of null values
+    // g_GfxBackend->SetTextureImage(textures[textureIdx].width, textures[textureIdx].height,
+    //                               g_TextureFormatTypeGfxMapping[textureFormat],
+    //                               g_TextureFormatTypeMapping[textureFormat], NULL);
 
     return ZUN_SUCCESS;
 }
@@ -2170,7 +2171,8 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
     u32 textureWidth = BitCeil((u32)src->w);
     u32 textureHeight = BitCeil((u32)src->h);
 
-    g_GfxBackend->SetTextureImage(textureWidth, textureHeight, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, NULL);
+    //No sending null
+   //g_GfxBackend->SetTextureImage(textureWidth, textureHeight, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, NULL);
 
     u8 *surfaceData = ExtractSurfacePixels(src, 3);
 
