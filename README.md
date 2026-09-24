@@ -1,5 +1,7 @@
 # th06-3ds-native
 
+This project was made possible by the amazing work that has been put into the Touhou 6 decomp projection https://github.com/GensokyoClub/th06
+
 # Installing
 
 Create a folder on the root of your SD card called th06, then Legally obtain a copy of Touhou Koumakyou, then copy all the .DAT files to that folder. Also copy the MS gothic font file to th06 and make sure it is named msgothic.ttc, if not then rename it.
