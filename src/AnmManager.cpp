@@ -943,7 +943,7 @@ ZunResult AnmManager::DrawOrthographic(const AnmVm *vm, bool roundToPixel)
         g_PrimitivesToDrawNoVertexBuf[0].textureUV.y = g_PrimitivesToDrawNoVertexBuf[1].textureUV.y =
             vm->sprite->uvStart.y + vm->uvScrollPos.y;
         g_PrimitivesToDrawNoVertexBuf[2].textureUV.y = g_PrimitivesToDrawNoVertexBuf[3].textureUV.y =
-            vm->sprite->uvEnd.y + vm->uvScrollPos.y;
+            vm->sprite->uvEnd.y + vm->uvScrollPos.y; 
 
         this->SetAttributePointer(VERTEX_ARRAY_POSITION, sizeof(*g_PrimitivesToDrawNoVertexBuf),
                                   &g_PrimitivesToDrawNoVertexBuf[0].position);
@@ -952,6 +952,7 @@ ZunResult AnmManager::DrawOrthographic(const AnmVm *vm, bool roundToPixel)
         this->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*g_PrimitivesToDrawNoVertexBuf),
                                   &g_PrimitivesToDrawNoVertexBuf[0].diffuse);
         //        g_Supervisor.d3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, g_PrimitivesToDrawNoVertexBuf, 0x1c);
+        g_GfxBackend->SetRhw(true);
         this->BackendDrawCall();
     }
 
@@ -1303,6 +1304,7 @@ ZunResult AnmManager::Draw3(const AnmVm *vm)
         this->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*g_PrimitivesToDrawUnknown),
                                   &g_PrimitivesToDrawUnknown[0].diffuse);
 
+        g_GfxBackend->SetRhw(false);
         this->BackendDrawCall();
         this->SetTransformMatrix(MATRIX_VIEW, originalView);
     }
@@ -1422,6 +1424,7 @@ ZunResult AnmManager::Draw2(const AnmVm *vm)
 
         //        g_Supervisor.d3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, , 0x18);
 
+        g_GfxBackend->SetRhw(false);
         this->BackendDrawCall();
 
         this->SetTransformMatrix(MATRIX_VIEW, originalView);
@@ -2145,6 +2148,7 @@ cleanup:
 // Utter mess that needs to be rewritten
 void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &srcRect, const SDL_Rect &dstRect)
 {
+// I'm not exactly sure how to implement this rn so I'm going to remove it
     ZunViewport originalViewport;
     ZunViewport fullscreenViewport;
 
@@ -2174,9 +2178,12 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
     //No sending null
    //g_GfxBackend->SetTextureImage(textureWidth, textureHeight, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, NULL);
 
+    //SDL_Surface* converted = SDL_ConvertSurfaceFormat(src, SDL_PIXELFORMAT_RGBA32, 0);
+
     u8 *surfaceData = ExtractSurfacePixels(src, 3);
 
-    g_GfxBackend->SetTextureSubImage(0, 0, src->w, src->h, surfaceData);
+    //g_GfxBackend->SetTextureSubImage(0, 0, src->w, src->h, surfaceData);
+    g_GfxBackend->SetTextureImage(src->w, src->h, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, surfaceData);
 
     delete[] surfaceData;
 
@@ -2203,6 +2210,7 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
     this->SetDepthMask(false);
     this->SetDepthFunc(DEPTH_FUNC_ALWAYS);
 
+    g_GfxBackend->SetRhw(false);
     this->BackendDrawCall();
 
     this->SetColorOp(COMPONENT_ALPHA, COLOR_OP_MODULATE);

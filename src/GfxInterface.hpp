@@ -152,6 +152,8 @@ struct GfxInterface
 
     virtual void ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pixels) = 0;
 
+    virtual void SetRhw(bool enable);
+
     virtual void Draw(PrimitiveType type, i32 start, i32 count) = 0;
     virtual void SwapBuffers() = 0;
 };

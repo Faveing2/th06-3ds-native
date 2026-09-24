@@ -73,14 +73,14 @@ i32 FileAbstraction::Read(u8 *data, u32 dataLen, u32 *numBytesRead)
 
 i32 FileAbstraction::Write(const u8 *data, u32 dataLen, u32 *outWritten)
 {
-    if (this->access != ACCESS_WRITE)
-    {
-        return false;
-    }
+    // if (this->access != ACCESS_WRITE)
+    // {
+    //     return false;
+    // }
 
-    *outWritten = std::fwrite(data, 1, dataLen, this->handle);
+    // *outWritten = std::fwrite(data, 1, dataLen, this->handle);
 
-    return !(dataLen != 0 && *outWritten < dataLen);
+    // return !(dataLen != 0 && *outWritten < dataLen);
 }
 
 i32 FileAbstraction::ReadByte()
@@ -104,22 +104,22 @@ i32 FileAbstraction::ReadByte()
 
 i32 FileAbstraction::WriteByte(u32 b)
 {
-    u8 outByte;
-    u32 outBytesWritten;
+    // u8 outByte;
+    // u32 outBytesWritten;
 
-    outByte = b;
-    if (!this->Write(&outByte, 1, &outBytesWritten))
-    {
-        return -1;
-    }
-    else
-    {
-        if (outBytesWritten == 0)
-        {
-            return -1;
-        }
-        return b;
-    }
+    // outByte = b;
+    // if (!this->Write(&outByte, 1, &outBytesWritten))
+    // {
+    //     return -1;
+    // }
+    // else
+    // {
+    //     if (outBytesWritten == 0)
+    //     {
+    //         return -1;
+    //     }
+    //     return b;
+    // }
 }
 
 i32 FileAbstraction::Seek(u32 amount, u32 seekFrom)

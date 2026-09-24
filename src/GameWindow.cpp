@@ -6,7 +6,7 @@
 #include "Stage.hpp"
 #include "Supervisor.hpp"
 #include "ZunMath.hpp"
-#include "Software.hpp"
+//#include "Software.hpp"
 #include "i18n.hpp"
 #include "utils.hpp"
 #include "GfxCitro3d.hpp"
@@ -32,7 +32,7 @@ static const struct
 {
     const char *name;
     GfxInterface *(*TryInit)();
-} s_RenderBackends[] = {{"Citro3D", GfxCitro3d::Init},{"Software fallback (VERY SLOW)", Software::Init}};
+} s_RenderBackends[] = {{"Citro3D", GfxCitro3d::Init}};
 
 RenderResult GameWindow::Render()
 {

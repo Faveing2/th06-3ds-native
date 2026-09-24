@@ -792,6 +792,7 @@ ZunResult GuiImpl::DrawDialogue() const
     g_AnmManager->SetAttributePointer(VERTEX_ARRAY_POSITION, sizeof(*vertices), &vertices[0].position);
     g_AnmManager->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*vertices), &vertices[0].diffuse);
 
+    g_GfxBackend->SetRhw(true);
     g_AnmManager->BackendDrawCall();
 
     g_AnmManager->SetCurrentBlendMode(0xff);
@@ -1214,6 +1215,7 @@ void Gui::DrawGameScene()
             g_AnmManager->SetAttributePointer(VERTEX_ARRAY_POSITION, sizeof(*vertices), &vertices[0].position);
             g_AnmManager->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*vertices), &vertices[0].diffuse);
 
+            g_GfxBackend->SetRhw(false);
             g_AnmManager->BackendDrawCall();
 
             //            g_Supervisor.d3dDevice->SetVertexShader(D3DFVF_DIFFUSE | D3DFVF_XYZRHW);

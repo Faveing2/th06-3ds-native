@@ -92,6 +92,7 @@ void ScreenEffect::DrawSquare(const ZunRect *rect, ZunColor rectColor)
 
     g_GfxBackend->SetBlendMode(BLEND_INV_SRC_ALPHA);
 
+    g_GfxBackend->SetRhw(true);
     g_AnmManager->BackendDrawCall();
 
     g_AnmManager->SetCurrentSprite(NULL);

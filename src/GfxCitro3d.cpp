@@ -15,6 +15,7 @@
 #include "Controller.hpp"
 #include "AnmManager.hpp"
 #include <algorithm>
+#include "Supervisor.hpp"
 
 // Compiled vertex shader
 #include "ff_shbin.h"
@@ -84,10 +85,68 @@ GfxInterface *GfxCitro3d::Init(){
 
 	self->env = C3D_GetTexEnv(0);
 	C3D_TexEnvInit(self->env);
-	C3D_TexEnvSrc(self->env, C3D_Both, GPU_TEXTURE0, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR);
-	C3D_TexEnvFunc(self->env, C3D_Both, GPU_REPLACE);
 
-    C3D_TexEnvColor(self->env, 0xFF0000FF);
+    // OpenGL GL_TEXTURE_ENV_MODE = GL_COMBINE
+    // Explicitly select the equivalent of source 0.
+    GPU_TEVSRC source1;
+
+    if (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0)
+        source1 = GPU_CONSTANT;
+    else
+        source1 = GPU_PRIMARY_COLOR;
+
+    // GL_SRC0_ALPHA = texture alpha
+    // GL_SRC1_ALPHA = constant or primary color alpha
+    C3D_TexEnvSrc(
+        self->env,
+        C3D_Alpha,
+        GPU_TEXTURE0,
+        source1,
+        GPU_PRIMARY_COLOR
+    );
+
+    // GL_OPERAND0_ALPHA = GL_SRC_ALPHA
+    // GL_OPERAND1_ALPHA = GL_SRC_ALPHA
+    C3D_TexEnvOpAlpha(
+        self->env,
+        GPU_TEVOP_A_SRC_ALPHA,
+        GPU_TEVOP_A_SRC_ALPHA,
+        GPU_TEVOP_A_SRC_ALPHA
+    );
+
+    // GL_COMBINE_ALPHA = GL_MODULATE or GL_REPLACE
+    if (((g_Supervisor.cfg.opts >> GCOS_NO_COLOR_COMP) & 1) == 0)
+        C3D_TexEnvFunc(self->env, C3D_Alpha, GPU_MODULATE);
+    else
+        C3D_TexEnvFunc(self->env, C3D_Alpha, GPU_REPLACE);
+
+
+    // GL_SRC0_RGB = texture color
+    // GL_SRC1_RGB = constant or primary color
+    C3D_TexEnvSrc(
+        self->env,
+        C3D_RGB,
+        GPU_TEXTURE0,
+        source1,
+        GPU_PRIMARY_COLOR
+    );
+
+    // GL_OPERAND0_RGB = GL_SRC_COLOR
+    // GL_OPERAND1_RGB = GL_SRC_COLOR
+    C3D_TexEnvOpRgb(
+        self->env,
+        GPU_TEVOP_RGB_SRC_COLOR,
+        GPU_TEVOP_RGB_SRC_COLOR,
+        GPU_TEVOP_RGB_SRC_COLOR
+    );
+
+    // GL_COMBINE_RGB = GL_MODULATE or GL_REPLACE
+    if (((g_Supervisor.cfg.opts >> GCOS_NO_COLOR_COMP) & 1) == 0)
+        C3D_TexEnvFunc(self->env, C3D_RGB, GPU_MODULATE);
+    else
+        C3D_TexEnvFunc(self->env, C3D_RGB, GPU_REPLACE);
+
+    C3D_TexEnvColor(self->env, self->C3D_clearcolor);
 
     C3D_CullFace(GPU_CULL_NONE);
 
@@ -120,10 +179,16 @@ void GfxCitro3d::SetFogColor(ZunColor color){
 
 void GfxCitro3d::ToggleVertexAttribute(u8 attr, bool enable){
     if (attr & VERTEX_ATTR_TEX_COORD){
+        GPU_TEVSRC source0 = enable ? GPU_TEXTURE0 : GPU_PRIMARY_COLOR;
+
+        GPU_TEVSRC source1 = (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0) ? GPU_CONSTANT: GPU_PRIMARY_COLOR;
+
+        C3D_TexEnvSrc(this->env, C3D_Both, source0, source1, GPU_PRIMARY_COLOR);
+
         useTexCoord = enable;
     }
     if (attr & VERTEX_ATTR_DIFFUSE){
-        useDiffuse = enable;
+        useTexCoord = !enable;
     }
 }
 
@@ -148,7 +213,20 @@ void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t str
     }
 }
 void GfxCitro3d::SetColorOp(TextureOpComponent component, ColorOp op){
-    
+    const GPU_COMBINEFUNC opEnums[3] {GPU_MODULATE, GPU_ADD, GPU_REPLACE};
+
+    if (component > COMPONENT_ALPHA || op > COLOR_OP_REPLACE){
+        return;
+    }
+
+    switch(component){
+        case COMPONENT_ALPHA:
+        C3D_TexEnvFunc(this->env, C3D_Alpha, opEnums[op]);
+        break;
+        default:
+        C3D_TexEnvFunc(this->env, C3D_RGB, opEnums[op]);
+        break;
+    }
 }
 void GfxCitro3d::SetTextureFactor(ZunColor){
     
@@ -256,7 +334,12 @@ void GfxCitro3d::SetDepthFunc(DepthFunc func){
 }
 
 void GfxCitro3d::SetClearDepth(f32 depth){
-    
+    if (depth < 0.0f)
+        depth = 0.0f;
+    if (depth > 1.0f)
+        depth = 1.0f;
+
+    this->C3D_cleardepth = (u32)(depth * 0xFFFFFFu + 0.5f);
 }
 
 static u8 FloatToColorByte(f32 value)
@@ -268,6 +351,7 @@ static u8 FloatToColorByte(f32 value)
 void GfxCitro3d::SetClearColor(f32 r, f32 g, f32 b, f32 a){
 
     this->C3D_clearcolor = C2D_Color32(FloatToColorByte(r),FloatToColorByte(g),FloatToColorByte(b),FloatToColorByte(a));
+    C3D_TexEnvColor(this->env, this->C3D_clearcolor);
 }
 
 GfxTextureHandle GfxCitro3d::CreateTexture(){
@@ -298,7 +382,7 @@ void GfxCitro3d::BindTexture(GfxTextureHandle handle){
     if (!this->textures3ds[handle.id])
         return;
     this->boundTexture3ds = this->textures3ds[handle.id].get();
-    //C3D_TexBind(0, &this->boundTexture3ds->texObject);
+    C3D_TexBind(0, &this->boundTexture3ds->texObject);
 }
 
 void GfxCitro3d::SetContextFlags(){
@@ -306,7 +390,20 @@ void GfxCitro3d::SetContextFlags(){
 }
 
 void GfxCitro3d::Clear(u32 clearBits){
+    C3D_ClearBits mask = (C3D_ClearBits)0;
 
+    if (clearBits & CLEAR_COLOR_BUFFER){
+        mask = (C3D_ClearBits)(mask | C3D_CLEAR_COLOR);
+    }
+    if (clearBits & CLEAR_DEPTH_BUFFER)
+        mask = (C3D_ClearBits)(mask | C3D_CLEAR_DEPTH);
+    
+    C3D_RenderTargetClear(
+        this->target,
+        mask,
+        this->C3D_clearcolor,
+        this->C3D_cleardepth
+    );
 }
 
 void GfxCitro3d::DeleteTexture(GfxTextureHandle handle){
@@ -397,9 +494,12 @@ std::vector<u8> SwizzleTexture(
     if (!source || bytesPerPixel == 0)
         return {};
 
-    // PICA textures must be arranged in complete 8x8 tiles.
-    if ((width % 8) != 0 || (height % 8) != 0)
+    //PICA textures must be arranged in complete 8x8 tiles.
+    if ((width % 8) != 0 || (height % 8) != 0){
+        printf("Texture Size not div by 8");
+        sleep(5);
         return {};
+    }
 
     const u8* input = static_cast<const u8*>(source);
 
@@ -563,39 +663,39 @@ static bool ValidFloat(float value)
     return std::isfinite(value);
 }
 
+void GfxCitro3d::SetRhw(bool enable){
+    this->useRhw = enable;
+}
+
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
-    // printf("SDL subsystems: 0x%08x\n", SDL_WasInit(0));
-    // printf("Joysticks: %d\n", SDL_NumJoysticks());
-    // printf(
-    // "Is GameController: %s\n",
-    // SDL_IsGameController(0) ? "yes" : "no"
-    // );
-
-    C3D_TexBind(0, &this->boundTexture3ds->texObject);
 
     GPU_Primitive_t C3DPrim;
 
-    const VertexTex1Xyzrhw* triangleVertices = nullptr;
-    const VertexTex1DiffuseXyzrhw* stripVertices = nullptr;
+    const VertexDiffuseXyzrhw* vertexdiffuseXyzrhw = nullptr; // This type never actually gets sent think?
+    const VertexTex1Xyzrhw* triangleVertices = nullptr; 
+    const VertexTex1DiffuseXyzrhw* stripVerticesrhw = nullptr;
+    const VertexTex1DiffuseXyz* stripVertices = nullptr;
+
+    vertexdiffuseXyzrhw = static_cast<const VertexDiffuseXyzrhw*>(vertexData);
+    triangleVertices = static_cast<const VertexTex1Xyzrhw*>(vertexData);
+    stripVerticesrhw = static_cast<const VertexTex1DiffuseXyzrhw*>(vertexData);
+    stripVertices = static_cast<const VertexTex1DiffuseXyz*>(vertexData);
 
     switch(type)
     {
     case PRIM_TRIANGLES:
         C3DPrim = GPU_TRIANGLES;
-        triangleVertices = static_cast<const VertexTex1Xyzrhw*>(vertexData);
-        //return; // GPU_TRIANGLE_STRIP is causing issues with sending incorrect values to the gpu, lets skip for now
         break;
     case PRIM_TRIANGLE_STRIP:
         C3DPrim = GPU_TRIANGLE_STRIP;
-        stripVertices = static_cast<const VertexTex1DiffuseXyzrhw*>(vertexData);
         break;
     }
 
     if(this->first_draw){
         //utils::DebugPrint("First draw");
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-        C3D_RenderTargetClear(this->target, C3D_CLEAR_ALL, this->C3D_clearcolor, 0);
+        //C3D_RenderTargetClear(this->target, C3D_CLEAR_ALL, this->C3D_clearcolor, 0);
         C3D_FrameDrawOn(this->target);
         this->first_draw = false;
     }
@@ -623,20 +723,54 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     switch(C3DPrim)
     {
     case GPU_TRIANGLE_STRIP:
-        for (int i = 0; i < count; i++)
-        {
-            C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
-            C3D_ImmSendAttrib(stripVertices[i].textureUV.x,1.0f-stripVertices[i].textureUV.y,1.0f,1.0f);
-            C3D_ImmSendAttrib(stripVertices[i].diffuse.r,stripVertices[i].diffuse.g,stripVertices[i].diffuse.b,stripVertices[i].diffuse.a);
+        if(this->useRhw && this->useTexCoord){
+            for(int i = 0; i <= count; i++){
+                    C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,1.0f);
+                    C3D_ImmSendAttrib(stripVerticesrhw[i].textureUV.x,1.0f-stripVerticesrhw[i].textureUV.y,1.0f,1.0f);
+                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+            }
+        }else if(this-useRhw && !this->useTexCoord){
+            for(int i = 0; i <= count; i++){
+                    C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,1.0f);
+                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+                    C3D_ImmSendAttrib(stripVerticesrhw[i].diffuse.r,stripVerticesrhw[i].diffuse.g,stripVerticesrhw[i].diffuse.b,stripVerticesrhw[i].diffuse.a);
+            }
+        }else if(!this->useRhw && this->useTexCoord){
+            for(int i = 0; i <= count; i++){
+                    C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
+                    C3D_ImmSendAttrib(stripVertices[i].textureUV.x,1.0f-stripVertices[i].textureUV.y,1.0f,1.0f);
+                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+            }
+        }else if(!this->useRhw && !this->useTexCoord){
+            for(int i = 0; i <= count; i++){
+                    C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
+                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+                    C3D_ImmSendAttrib(stripVertices[i].diffuse.r,stripVertices[i].diffuse.g,stripVertices[i].diffuse.b,stripVertices[i].diffuse.a);
+            }
         }
         break;
     case GPU_TRIANGLES:
-        for (int i = 0; i < count; i++)
-        {
-            C3D_ImmSendAttrib(triangleVertices[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,1.0f);
-            C3D_ImmSendAttrib(triangleVertices[i].textureUV.x,1.0f-triangleVertices[i].textureUV.y,1.0f,1.0f);
-            C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-        }
+        // if(this->useTexCoord){
+        //     for (int i = 0; i < count; i++)
+        //     {
+        //         C3D_ImmSendAttrib(triangleVertices[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,1.0f);
+        //         C3D_ImmSendAttrib(triangleVertices[i].textureUV.x,1.0f-triangleVertices[i].textureUV.y,1.0f,1.0f);
+        //         C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+        //     }
+        // }else{
+        //     for (int i = 0; i < count; i++)
+        //     {
+        //         C3D_ImmSendAttrib(vertexdiffuseXyzrhw[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,1.0f);
+        //         C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+        //         C3D_ImmSendAttrib(vertexdiffuseXyzrhw[i].diffuse.r,vertexdiffuseXyzrhw[i].diffuse.g,vertexdiffuseXyzrhw[i].diffuse.b,vertexdiffuseXyzrhw[i].diffuse.a);
+        //     }
+        // }
+            for (int i = 0; i < count; i++)
+            {
+                C3D_ImmSendAttrib(triangleVertices[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,1.0f);
+                C3D_ImmSendAttrib(triangleVertices[i].textureUV.x,1.0f-triangleVertices[i].textureUV.y,1.0f,1.0f);
+                C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+            }
         break;
     }
 

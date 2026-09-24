@@ -61,6 +61,8 @@ struct GfxCitro3d : GfxInterface
 
     virtual void ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pixels);
 
+    virtual void SetRhw(bool enable);
+
     virtual void Draw(PrimitiveType type, i32 start, i32 count);
     virtual void SwapBuffers();
 
@@ -81,6 +83,7 @@ struct GfxCitro3d : GfxInterface
         shaderProgram_s program;
 
         u32 C3D_clearcolor = 0x68B0D8FF;
+        u32 C3D_cleardepth = 0xFFFFFF;
 
         C3D_RenderTarget* target;
 
@@ -96,6 +99,8 @@ struct GfxCitro3d : GfxInterface
         float position[3];
         float texcoord[2];
         u8 diffuse[4];
+
+        bool useRhw = false;
 
         bool first_draw=true;
 
