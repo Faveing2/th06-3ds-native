@@ -2303,20 +2303,26 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
     u32 textureHeight = BitCeil((u32)src->h);
 
     //No sending null
-   //g_GfxBackend->SetTextureImage(textureWidth, textureHeight, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, NULL);
+    //g_GfxBackend->SetTextureImage(textureWidth, textureHeight, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, NULL);
 
-    //SDL_Surface* converted = SDL_ConvertSurfaceFormat(src, SDL_PIXELFORMAT_RGBA32, 0);
+    //SDL_Surface* converted = SDL_ConvertSurfaceFormat(src, SDL_PIXELFORMAT_RGB24, 0);
+
+    // SDL_PixelFormat* format = src->format;
+
+    // printf("Pixel format: %s\n",
+    //     SDL_GetPixelFormatName(format->format));
+
+    //SDL_PixelFormat* format = surface->format;
 
     u8 *surfaceData = ExtractSurfacePixels(src, 3);
 
     //g_GfxBackend->SetTextureSubImage(0, 0, src->w, src->h, surfaceData);
 
-    //g_GfxBackend->SetTextureImage(src->w, src->h, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, surfaceData);
-
-    //printf("Surface data (%i,%i,%i)", surfaceData[0], surfaceData[1], surfaceData[0]);
-    //g_GfxBackend->BindTexture(this->currentTextureHandle);
+    g_GfxBackend->SetTextureImage(src->w, src->h, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, surfaceData);
 
     //g_GfxBackend->BindTexture(this->currentTextureHandle);
+
+    g_GfxBackend->BindTexture(this->currentTextureHandle);
 
     delete[] surfaceData;
 
@@ -2353,7 +2359,7 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
 
     this->SetCurrentSprite(NULL);
     this->SetCurrentTexture(0);
-    this->SetCurrentBlendMode(0xff);
+    // this->SetCurrentBlendMode(0xff);
 
     originalViewport.Set();
 }

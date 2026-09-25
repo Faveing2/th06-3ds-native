@@ -411,6 +411,7 @@ void GfxCitro3d::DeleteTexture(GfxTextureHandle handle){
         return;
     if (!textures3ds[handle.id])
         return;
+    C3D_TexDelete(&textures3ds[handle.id]->texObject);
     textures3ds[handle.id].reset();
     freeTextures3ds.push_back(handle.id);
 }
@@ -561,10 +562,16 @@ std::vector<u8> SwizzleTexture(
     if (!source || bytesPerPixel == 0 || width == 0 || height == 0)
         return {};
 
-    // Round each dimension up to the next multiple of 8.
-    paddedWidth  = (width  + 7) & ~7u;
-    paddedHeight = (height + 7) & ~7u;
 
+    // This is not correctly padding :(
+    // Round each dimension up to the next multiple of 8.
+
+    paddedWidth = BitCeil(width);
+    paddedHeight = BitCeil(height);
+
+    //Not correctly calculating the padding values
+    // paddedWidth  = (width  + 7) & ~7u;
+    // paddedHeight = (height + 7) & ~7u;
     const u8* input = static_cast<const u8*>(source);
 
     std::vector<u8> output(
@@ -660,8 +667,11 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
             }
         }
 
-        paddedwidth = NextPowerOfTwo(width);
-        paddedheight = NextPowerOfTwo(height);
+        // paddedwidth = NextPowerOfTwo(width);
+        // paddedheight = NextPowerOfTwo(height);
+
+        paddedwidth = BitCeil(width);
+        paddedheight = BitCeil(height);
         
 
         this->boundTexture3ds->width = width;
@@ -673,8 +683,8 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
 
         std::vector<u8> converted = SwizzleTexture(
             data,
-            paddedwidth,
-            paddedheight,
+            width,
+            height,
             textureFormat
         );
 
@@ -685,6 +695,11 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
         //C3D_TexUpload(&this->boundTexture3ds->texObject, this->boundTexture3ds->data.data());
         C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
         C3D_TexFlush(&this->boundTexture3ds->texObject);
+    //     C3D_TexSetWrap(
+    //     &this->boundTexture3ds->texObject,
+    //     GPU_CLAMP_TO_EDGE,
+    //     GPU_CLAMP_TO_EDGE
+    // );
         //C3D_TexBind(0, &this->boundTexture3ds->texObject);
     }
 }
