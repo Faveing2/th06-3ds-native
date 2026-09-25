@@ -871,13 +871,13 @@ void AsciiManager::DrawPopupsWithHwVertexProcessing()
             {
                 this->vm1.matrix.m[0][0] = 0.1875f;
                 this->vm1.matrix.m[1][1] = 0.03125f;
-                g_AnmManager->Draw2(&this->vm1);
+                g_AnmManager->Draw(&this->vm1);
                 this->vm1.matrix.m[0][0] = 0.03125f;
                 this->vm1.matrix.m[1][1] = 0.03125f;
             }
             else
             {
-                g_AnmManager->Draw2(&this->vm1);
+                g_AnmManager->Draw(&this->vm1);
             }
 
             this->vm1.pos.x += 8.0f;
@@ -928,7 +928,7 @@ void AsciiManager::DrawPopupsWithoutHwVertexProcessing()
             }
             else
             {
-                g_AnmManager->Draw2(&this->vm1);
+                g_AnmManager->Draw(&this->vm1);
             }
 
             this->vm1.pos.x += 8.0f;

@@ -206,6 +206,7 @@ struct AnmManager
         }
 
         g_GfxBackend->Draw(PRIM_TRIANGLE_STRIP, 0, 4);
+        g_GfxBackend->BindTexture(this->currentTextureHandle);
     }
 
     // We need to do checks in these because they're called nearly every ANM draw call and otherwise

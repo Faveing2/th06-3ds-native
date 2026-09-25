@@ -22,8 +22,8 @@ void ScreenEffect::Clear(ZunColor color)
 
     g_GfxBackend->Clear(CLEAR_COLOR_BUFFER | CLEAR_DEPTH_BUFFER);
     g_GfxBackend->SwapBuffers();
-    g_GfxBackend->Clear(CLEAR_COLOR_BUFFER | CLEAR_DEPTH_BUFFER);
-    g_GfxBackend->SwapBuffers();
+    // g_GfxBackend->Clear(CLEAR_COLOR_BUFFER | CLEAR_DEPTH_BUFFER);
+    // g_GfxBackend->SwapBuffers();
 
     return;
 }

@@ -700,7 +700,7 @@ ZunResult Stage::RenderObjects(i32 zLevel)
                     }
                     else
                     {
-                        g_AnmManager->Draw3(curQuadVm);
+                        g_AnmManager->Draw(curQuadVm);
                     }
                     break;
                 }

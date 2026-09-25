@@ -106,6 +106,7 @@ struct Supervisor
     static ZunResult AddedCallback(Supervisor *s);
     static ZunResult DeletedCallback(Supervisor *s);
     static void DrawFpsCounter();
+    static void DrawBufferUsage();
 
     bool ReadMidiFile(u32 midiFileIdx, const char *path);
     ZunResult PlayMidiFile(i32 midiFileIdx);

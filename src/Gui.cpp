@@ -1293,7 +1293,7 @@ void Gui::DrawStageElements() const
         stageTextPos.z = 0.0f;
         if (!g_GameManager.demoMode)
         {
-            g_AnmManager->Draw2(&this->impl->stageNameSprite);
+            g_AnmManager->Draw(&this->impl->stageNameSprite);
 
             // this looks like an inline function, maybe ZunColor is a struct?
             stageTextColor = COLOR_COMBINE_ALPHA(COLOR_SUNSHINEYELLOW, this->impl->stageNameSprite.color);
@@ -1329,7 +1329,7 @@ void Gui::DrawStageElements() const
 
     if (this->impl->songNameSprite.flags.isVisible && !g_GameManager.demoMode)
     {
-        g_AnmManager->Draw2(&this->impl->songNameSprite);
+        g_AnmManager->Draw(&this->impl->songNameSprite);
     }
     if (this->impl->playerSpellcardPortrait.flags.isVisible)
     {

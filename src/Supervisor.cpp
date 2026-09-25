@@ -18,6 +18,7 @@
 #include "i18n.hpp"
 #include "inttypes.hpp"
 #include "utils.hpp"
+#include <citro3d.h>
 
 #include <SDL2/SDL_joystick.h>
 #include <SDL2/SDL_timer.h>
@@ -242,6 +243,7 @@ ChainCallbackResult Supervisor::OnDraw(Supervisor *s)
     anmm4->currentBlendMode = 0xff;
 
     Supervisor::DrawFpsCounter();
+    Supervisor::DrawBufferUsage();
     return CHAIN_CALLBACK_RESULT_CONTINUE;
 }
 
@@ -317,13 +319,13 @@ ZunResult Supervisor::AddedCallback(Supervisor *s)
 
     g_GfxBackend->SwapBuffers();
 
-    //
-    g_AnmManager->CopySurfaceToBackBuffer(0, 0, 0, 0, 0);
-    //    if (g_Supervisor.d3dDevice->Present(0, 0, 0, 0) < 0)
-    //        g_Supervisor.d3dDevice->Reset(&g_Supervisor.presentParameters);
-    //
+    // //
+    // g_AnmManager->CopySurfaceToBackBuffer(0, 0, 0, 0, 0);
+    // //    if (g_Supervisor.d3dDevice->Present(0, 0, 0, 0) < 0)
+    // //        g_Supervisor.d3dDevice->Reset(&g_Supervisor.presentParameters);
+    // //
 
-    g_GfxBackend->SwapBuffers();
+    // g_GfxBackend->SwapBuffers();
 
     g_AnmManager->ReleaseSurface(0);
 
@@ -568,6 +570,36 @@ void Supervisor::DrawFpsCounter()
     return;
 }
 
+void Supervisor::DrawBufferUsage()
+{
+    u32 curTime;
+    float elapsed;
+    float fps;
+    ZunVec3 BufferUsageCounterPos;
+
+    static u32 g_NumFramesSinceLastTime = 0;
+    static u32 g_LastTime = SDL_GetTicks();
+    static char DrawBufferUsageBuffer[256];
+
+    curTime = SDL_GetTicks();
+    g_NumFramesSinceLastTime = g_NumFramesSinceLastTime + 1 + (u32)g_Supervisor.cfg.frameskipConfig;
+    if (500 <= curTime - g_LastTime)
+    {
+        elapsed = (curTime - g_LastTime) / 1000.f;
+        g_LastTime = curTime;
+        g_NumFramesSinceLastTime = 0;
+        sprintf(DrawBufferUsageBuffer, "Buffer Usage: %0.1f", C3D_GetCmdBufUsage() * 100.0f);
+    }
+    if (!g_Supervisor.isInEnding)
+    {
+        BufferUsageCounterPos.x = 0.0;
+        BufferUsageCounterPos.y = 0.0;
+        BufferUsageCounterPos.z = 0.0;
+        g_AsciiManager.AddString(&BufferUsageCounterPos, DrawBufferUsageBuffer);
+    }
+    return;
+}
+
 void Supervisor::TickTimer(i32 *frames, f32 *subframes)
 {
     if (this->framerateMultiplier <= 0.99f)
@@ -662,7 +694,7 @@ ZunResult Supervisor::LoadConfig(const char *path)
         g_Supervisor.cfg.version = GAME_VERSION;
         g_Supervisor.cfg.padXAxis = 600;
         g_Supervisor.cfg.padYAxis = 600;
-        wavFile = FileSystem::FopenUTF8("bgm/th06_01.wav", "rb");
+        wavFile = FileSystem::FopenUTF8("th06/bgm/th06_01.wav", "rb");
         if (wavFile != NULL)
         {
             g_Supervisor.cfg.musicMode = WAV;
@@ -696,7 +728,7 @@ ZunResult Supervisor::LoadConfig(const char *path)
             g_Supervisor.cfg.version = GAME_VERSION;
             g_Supervisor.cfg.padXAxis = 600;
             g_Supervisor.cfg.padYAxis = 600;
-            wavFile2 = FileSystem::FopenUTF8("bgm/th06_01.wav", "rb");
+            wavFile2 = FileSystem::FopenUTF8("th06/bgm/th06_01.wav", "rb");
             if (wavFile2 != NULL)
             {
                 g_Supervisor.cfg.musicMode = WAV;

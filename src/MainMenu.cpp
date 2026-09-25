@@ -1017,7 +1017,7 @@ ZunResult MainMenu::BeginStartup()
             time = SDL_GetTicks();
         }
         g_Supervisor.startupTimeBeforeMenuMusic = 0;
-        g_Supervisor.PlayAudio("bgm/th06_01.mid");
+        g_Supervisor.PlayAudio("th06/bgm/th06_01.mid");
     }
     for (i = 0; i < ARRAY_SIZE_SIGNED(this->vm); i++)
     {

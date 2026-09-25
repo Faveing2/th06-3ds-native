@@ -952,6 +952,8 @@ void Player::DrawBullets(Player *p)
         {
             bullets->sprite.rotation.z = ZUN_PI / 2 - utils::AddNormalizeAngle(bullets->unk_134.z, ZUN_PI);
         }
+        //bullets->sprite.flags.anchor = 2;
+
         g_AnmManager->Draw2(&bullets->sprite);
     }
 }
@@ -973,7 +975,7 @@ void Player::DrawBulletExplosions(Player *p)
             bullets->sprite.rotation.z = ZUN_PI / 2 - utils::AddNormalizeAngle(bullets->unk_134.z, ZUN_PI);
         }
         bullets->sprite.pos.z = 0.4f;
-        g_AnmManager->Draw2(&bullets->sprite);
+        g_AnmManager->Draw(&bullets->sprite);
     }
 }
 
@@ -1067,6 +1069,7 @@ void Player::SpawnBullets(Player *p, u32 timer)
         }
         if (bulletResult >= 0)
         {
+            curBullet->position.x += 33;
             curBullet->sprite.pos.x = curBullet->position.x;
             curBullet->sprite.pos.y = curBullet->position.y;
             curBullet->sprite.pos.z = 0.495;

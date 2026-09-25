@@ -237,15 +237,15 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
     // Matricies need to be transposed
     switch (type)
     {
-    case MATRIX_MODEL:
-        for (int i = 0; i < 4; i++)
-        {
-            this->modelViewMatrix.r[i].x = matrix.m[0][i];
-            this->modelViewMatrix.r[i].y = matrix.m[1][i];
-            this->modelViewMatrix.r[i].z = matrix.m[2][i];
-            this->modelViewMatrix.r[i].w = matrix.m[3][i];
-        }
-        break;
+    // case MATRIX_MODEL:
+    //     for (int i = 0; i < 4; i++)
+    //     {
+    //         this->modelViewMatrix.r[i].x = matrix.m[0][i];
+    //         this->modelViewMatrix.r[i].y = matrix.m[1][i];
+    //         this->modelViewMatrix.r[i].z = matrix.m[2][i];
+    //         this->modelViewMatrix.r[i].w = matrix.m[3][i];
+    //     }
+    //     break;
     case MATRIX_VIEW:
         for (int i = 0; i < 4; i++)
         {
@@ -370,7 +370,7 @@ GfxTextureHandle GfxCitro3d::CreateTexture(){
         this->textures3ds.push_back(std::move(texture));
     }
 
-    //C3D_TexInit(&this->texture->texObject, width, height, textureFormat);
+    C3D_TexInit(&texture->texObject, 1, 1, GPU_RGB8);
 
     return {id};
 }
@@ -483,33 +483,98 @@ static unsigned MortonIndex8(unsigned x, unsigned y)
            ((y & 4) << 3);
 }
 
+// std::vector<u8> SwizzleTexture(
+//     const void* source,
+//     u32 width,
+//     u32 height,
+//     GPU_TEXCOLOR format)
+// {
+//     const std::size_t bytesPerPixel = BytesPerPixel(format);
+
+//     if (!source || bytesPerPixel == 0)
+//         return {};
+
+//     //PICA textures must be arranged in complete 8x8 tiles.
+//     if ((width % 8) != 0 || (height % 8) != 0){
+//         return {};
+//     }
+
+//     const u8* input = static_cast<const u8*>(source);
+
+//     std::vector<u8> output(
+//         static_cast<std::size_t>(width) *
+//         height *
+//         bytesPerPixel
+//     );
+
+//     const u32 tilesAcross = width / 8;
+
+//     for (u32 y = 0; y < height; ++y)
+//     {
+//         for (u32 x = 0; x < width; ++x)
+//         {
+//             const u32 tileX = x / 8;
+//             const u32 tileY = y / 8;
+
+//             const u32 localX = x % 8;
+//             const u32 localY = y % 8;
+
+//             const u32 tileIndex =
+//                 tileY * tilesAcross + tileX;
+
+//             const u32 pixelIndex =
+//                 tileIndex * 64 +
+//                 MortonIndex8(localX, localY);
+
+//             const std::size_t sourceOffset =
+//                 (static_cast<std::size_t>(y) * width + x) *
+//                 bytesPerPixel;
+
+//             const std::size_t outputOffset =
+//                 static_cast<std::size_t>(pixelIndex) *
+//                 bytesPerPixel;
+
+//             std::memcpy(
+//                 output.data() + outputOffset,
+//                 input + sourceOffset,
+//                 bytesPerPixel
+//             );
+//         }
+//     }
+
+//     return output;
+// }
+
 std::vector<u8> SwizzleTexture(
     const void* source,
     u32 width,
     u32 height,
-    GPU_TEXCOLOR format)
+    GPU_TEXCOLOR format
+    )
 {
+
+    u32 paddedWidth;
+    u32 paddedHeight;
+
     const std::size_t bytesPerPixel = BytesPerPixel(format);
 
-    if (!source || bytesPerPixel == 0)
+    if (!source || bytesPerPixel == 0 || width == 0 || height == 0)
         return {};
 
-    //PICA textures must be arranged in complete 8x8 tiles.
-    if ((width % 8) != 0 || (height % 8) != 0){
-        printf("Texture Size not div by 8");
-        sleep(5);
-        return {};
-    }
+    // Round each dimension up to the next multiple of 8.
+    paddedWidth  = (width  + 7) & ~7u;
+    paddedHeight = (height + 7) & ~7u;
 
     const u8* input = static_cast<const u8*>(source);
 
     std::vector<u8> output(
-        static_cast<std::size_t>(width) *
-        height *
-        bytesPerPixel
+        static_cast<std::size_t>(paddedWidth) *
+        paddedHeight *
+        bytesPerPixel,
+        0
     );
 
-    const u32 tilesAcross = width / 8;
+    const u32 tilesAcross = paddedWidth / 8;
 
     for (u32 y = 0; y < height; ++y)
     {
@@ -554,8 +619,27 @@ void CopyTextureData(Texture3ds& texture, const void* data, u32 width, u32 heigh
     texture.data.assign(pixels, pixels + size);
 }
 
+u32 NextPowerOfTwo(u32 value)
+{
+    if (value <= 8)
+        return 8;
+
+    --value;
+
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+
+    return value + 1;
+}
+
 void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDataType type, const void *data){
     //utils::DebugPrint("Setting Texture Image");
+
+    u32 paddedwidth;
+    u32 paddedheight;
 
     if(!data){
         return;
@@ -575,29 +659,9 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
                 bpp = 4;
             }
         }
-        // Debug code to make sure that I'm being sent the correct pixel values
-        // if(textureFormat=GPU_RGBA8){
-        //     for(u32 i; i < 100; i++){
-        //         printf("GPU_RGBA8:(%i,%i,%i,%i)\n", pixels[0 + i * 4], pixels[1 + i * 4], pixels[2 + i * 4], pixels[3 + i * 4]);
-        //     }
-        // }else if(textureFormat=GPU_RGB8){
-        //     for(u32 i; i < 100; i++){
-        //         printf("GPU_RGB8(%i,%i,%i)\n", pixels[0 + i * 3], pixels[1 + i * 3], pixels[2 + i * 3]);
-        //     }
-        // }else if (textureFormat=GPU_RGBA4)
-        // {
-        //     for(u32 i; i < 100; i++){
-        //         printf("GPU_RGBA4(%i,%i)\n", pixels[0 + i * 2], pixels[1 + i * 2]);
-        //     }
-        // }else if (textureFormat=GPU_RGBA5551){
-        //     for(u32 i; i < 100; i++){
-        //         printf("GPU_RGBA5551(%i,%i)\n", pixels[0 + i * 2], pixels[1 + i * 2]);
-        //     }
-        // }else if (textureFormat=GPU_RGB565){
-        //     for(u32 i; i < 100; i++){
-        //         printf("GPU_RGB565(%i,%i)\n", pixels[0 + i * 2], pixels[1 + i * 2]);
-        //     }
-        // }
+
+        paddedwidth = NextPowerOfTwo(width);
+        paddedheight = NextPowerOfTwo(height);
         
 
         this->boundTexture3ds->width = width;
@@ -609,17 +673,19 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
 
         std::vector<u8> converted = SwizzleTexture(
             data,
-            width,
-            height,
+            paddedwidth,
+            paddedheight,
             textureFormat
         );
 
+        C3D_TexDelete(&this->boundTexture3ds->texObject);
 
         // Okay seems the data needs to be formatted differently for the GPU :) sry 3ds you're gonna have to do this in realtime
-        C3D_TexInit(&this->boundTexture3ds->texObject, width, height, textureFormat);
+        C3D_TexInit(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
         //C3D_TexUpload(&this->boundTexture3ds->texObject, this->boundTexture3ds->data.data());
         C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
         C3D_TexFlush(&this->boundTexture3ds->texObject);
+        //C3D_TexBind(0, &this->boundTexture3ds->texObject);
     }
 }
 
@@ -731,9 +797,9 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
             }
         }else if(this-useRhw && !this->useTexCoord){
             for(int i = 0; i <= count; i++){
-                    C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,1.0f);
-                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-                    C3D_ImmSendAttrib(stripVerticesrhw[i].diffuse.r,stripVerticesrhw[i].diffuse.g,stripVerticesrhw[i].diffuse.b,stripVerticesrhw[i].diffuse.a);
+                    // C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,1.0f);
+                    // C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+                    // C3D_ImmSendAttrib(stripVerticesrhw[i].diffuse.r,stripVerticesrhw[i].diffuse.g,stripVerticesrhw[i].diffuse.b,stripVerticesrhw[i].diffuse.a);
             }
         }else if(!this->useRhw && this->useTexCoord){
             for(int i = 0; i <= count; i++){
@@ -743,9 +809,9 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
             }
         }else if(!this->useRhw && !this->useTexCoord){
             for(int i = 0; i <= count; i++){
-                    C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
-                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-                    C3D_ImmSendAttrib(stripVertices[i].diffuse.r,stripVertices[i].diffuse.g,stripVertices[i].diffuse.b,stripVertices[i].diffuse.a);
+                    // C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
+                    // C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+                    // C3D_ImmSendAttrib(stripVertices[i].diffuse.r,stripVertices[i].diffuse.g,stripVertices[i].diffuse.b,stripVertices[i].diffuse.a);
             }
         }
         break;

@@ -93,7 +93,6 @@ struct PlayerBullet
     void MoveHorizontal(f32 *position)
     {
         *position += this->velocity.x * g_Supervisor.effectiveFramerateMultiplier;
-        this->sprite.pos.x = *position;
     }
 
     void MoveVertical(f32 *position)

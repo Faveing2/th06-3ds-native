@@ -1112,7 +1112,7 @@ ChainCallbackResult BulletManager::OnDraw(BulletManager *mgr)
         curLaser->vm0.pos.y = sine * laserOffset + curLaser->pos.y;
         curLaser->vm0.pos.z = 0.0f;
         curLaser->color = COLOR_COMBINE_ALPHA(COLOR_WHITE, curLaser->color);
-        g_AnmManager->Draw3(&curLaser->vm0);
+        g_AnmManager->Draw2(&curLaser->vm0);
 
         if (curLaser->startOffset < 16.0f || curLaser->speed == 0.0f)
         {
@@ -1131,7 +1131,7 @@ ChainCallbackResult BulletManager::OnDraw(BulletManager *mgr)
                 curLaser->vm1.scaleY = curLaser->vm1.scaleX;
             }
 
-            g_AnmManager->Draw3(&curLaser->vm1);
+            g_AnmManager->Draw2(&curLaser->vm1);
         }
     }
 
@@ -1292,7 +1292,7 @@ void BulletManager::DrawBullet(Bullet *bullet)
         anmVm->rotation.z = (ZUN_PI / 2.0f) - bullet->angle;
     }
 
-    g_AnmManager->Draw2(anmVm);
+    g_AnmManager->Draw(anmVm);
 }
 
 void BulletManager::DrawBulletNoHwVertex(Bullet *bullet)
