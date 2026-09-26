@@ -1999,7 +1999,8 @@ ZunResult AnmManager::LoadSurface(i32 surfaceIdx, const char *path)
         this->ReleaseSurface(surfaceIdx);
     }
 
-    this->surfaces[surfaceIdx] = LoadToSurfaceWithFormat(path, SDL_PIXELFORMAT_RGB24, NULL);
+    // Had to change this to SDL_PIXELFORMAT_BGR24 and not SDL_PIXELFORMAT_RGB24, I'm not really sure why the red and blue channels were being swapped...
+    this->surfaces[surfaceIdx] = LoadToSurfaceWithFormat(path, SDL_PIXELFORMAT_BGR24, NULL);
 
     if (this->surfaces[surfaceIdx] == NULL)
     {
@@ -2307,16 +2308,13 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
 
     //SDL_Surface* converted = SDL_ConvertSurfaceFormat(src, SDL_PIXELFORMAT_RGB24, 0);
 
-    // SDL_PixelFormat* format = src->format;
-
-    // printf("Pixel format: %s\n",
-    //     SDL_GetPixelFormatName(format->format));
-
-    //SDL_PixelFormat* format = surface->format;
-
     u8 *surfaceData = ExtractSurfacePixels(src, 3);
 
+    //printf("Pixel2 (%i,%i,%i,%i)", surfaceData[0], surfaceData[1], surfaceData[2],surfaceData[3]);
+
     //g_GfxBackend->SetTextureSubImage(0, 0, src->w, src->h, surfaceData);
+
+    //g_GfxBackend->ReverseTextureRBValues(surfaceData, src->w, src->h);
 
     g_GfxBackend->SetTextureImage(src->w, src->h, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, surfaceData);
 

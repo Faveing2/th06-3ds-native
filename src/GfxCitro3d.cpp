@@ -282,7 +282,7 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
 }
 
 void GfxCitro3d::SetTextureFilter(){
-    
+    C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
 }
 
 void GfxCitro3d::GetViewport(u32 *viewport){
@@ -618,6 +618,22 @@ std::vector<u8> SwizzleTexture(
 
     return output;
 }
+u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height){
+    
+    u32 pixelcount = width*height*3;
+
+    u8* output = new u8[pixelcount];
+    
+    for(u32 i = 0; i < pixelcount; i++){
+        const u32 offset = i*3;
+
+        output[offset + 0] = data[offset + 2];
+        output[offset + 1] = data[offset + 1];
+        output[offset + 2] = data[offset + 0];
+    }
+    
+    return output;
+}
 
 void CopyTextureData(Texture3ds& texture, const void* data, u32 width, u32 height, GPU_TEXCOLOR format, u32 bpp){
     std::size_t size = static_cast<std::size_t>(width)*static_cast<std::size_t>(height)*static_cast<std::size_t>(bpp);
@@ -667,19 +683,13 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
             }
         }
 
-        // paddedwidth = NextPowerOfTwo(width);
-        // paddedheight = NextPowerOfTwo(height);
-
         paddedwidth = BitCeil(width);
         paddedheight = BitCeil(height);
-        
 
         this->boundTexture3ds->width = width;
         this->boundTexture3ds->height = height;
         this->boundTexture3ds->format = fmt;
         this->boundTexture3ds->type = type;
-
-        //CopyTextureData(*this->boundTexture3ds, data, width, height, textureFormat, bpp);
 
         std::vector<u8> converted = SwizzleTexture(
             data,
@@ -693,14 +703,9 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
         // Okay seems the data needs to be formatted differently for the GPU :) sry 3ds you're gonna have to do this in realtime
         C3D_TexInit(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
         //C3D_TexUpload(&this->boundTexture3ds->texObject, this->boundTexture3ds->data.data());
+
         C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
         C3D_TexFlush(&this->boundTexture3ds->texObject);
-    //     C3D_TexSetWrap(
-    //     &this->boundTexture3ds->texObject,
-    //     GPU_CLAMP_TO_EDGE,
-    //     GPU_CLAMP_TO_EDGE
-    // );
-        //C3D_TexBind(0, &this->boundTexture3ds->texObject);
     }
 }
 
