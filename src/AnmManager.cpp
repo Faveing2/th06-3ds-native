@@ -2298,7 +2298,7 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
 
     this->SetProjectionMode(PROJECTION_MODE_ORTHOGRAPHIC);
 
-    CreateTextureObject();
+    //CreateTextureObject();
 
     u32 textureWidth = BitCeil((u32)src->w);
     u32 textureHeight = BitCeil((u32)src->h);
@@ -2310,17 +2310,45 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
 
     u8 *surfaceData = ExtractSurfacePixels(src, 3);
 
+
+    // I added this code to stop this function from creating a new texture for the image everyframe, instead it only creates one whenever the background changes. This allows the menu to run at 60fps.
+    // All it does is record the pixel value of the first pixel and compare it next frame, if they're different then make a new texture, else use the old texture.
+
+    u8 new_pixel;
+    new_pixel = surfaceData[0]+surfaceData[1]+surfaceData[2];
+
+    if(this->previous_pixel==NULL){
+        this->previous_pixel = 0;
+    }
+
+    if(this->previous_pixel != new_pixel){
+        if(this->previous_texture_handel != NULL){
+            g_GfxBackend->DeleteTexture(this->previous_texture_handel);
+        }
+        CreateTextureObject();
+        this->previous_texture_handel = this->currentTextureHandle;
+
+        g_GfxBackend->SetTextureImage(src->w, src->h, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, surfaceData);
+
+        this->previous_pixel = new_pixel;
+
+        //g_GfxBackend->BindTexture(this->previous_texture_handel);
+    }else{
+        g_GfxBackend->BindTexture(this->previous_texture_handel);
+        this->previous_pixel = new_pixel;
+    }
+
     //printf("Pixel2 (%i,%i,%i,%i)", surfaceData[0], surfaceData[1], surfaceData[2],surfaceData[3]);
 
     //g_GfxBackend->SetTextureSubImage(0, 0, src->w, src->h, surfaceData);
 
     //g_GfxBackend->ReverseTextureRBValues(surfaceData, src->w, src->h);
 
-    g_GfxBackend->SetTextureImage(src->w, src->h, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, surfaceData);
+    //g_GfxBackend->SetTextureImage(src->w, src->h, PIXEL_RGB, PIXEL_UNSIGNED_BYTE, surfaceData);
 
     //g_GfxBackend->BindTexture(this->currentTextureHandle);
 
-    g_GfxBackend->BindTexture(this->currentTextureHandle);
+    //g_GfxBackend->BindTexture(this->currentTextureHandle);
 
     delete[] surfaceData;
 
@@ -2353,7 +2381,7 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
     this->SetColorOp(COMPONENT_ALPHA, COLOR_OP_MODULATE);
     this->SetColorOp(COMPONENT_RGB, COLOR_OP_MODULATE);
 
-    g_GfxBackend->DeleteTexture(this->currentTextureHandle);
+    //g_GfxBackend->DeleteTexture(this->currentTextureHandle);
 
     this->SetCurrentSprite(NULL);
     this->SetCurrentTexture(0);

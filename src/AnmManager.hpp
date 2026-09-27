@@ -442,6 +442,8 @@ struct AnmManager
     AnmRawEntry *anmFiles[128];
     u32 anmFilesSpriteIndexOffsets[128];
     SDL_Surface *surfaces[32];
+    u32 previous_pixel;
+    u32 previous_texture_handel;
     //    SDL_Surface *surfacesBis[32];
     //    D3DXIMAGE_INFO surfaceSourceInfo[32];
     // GLuint currentTextureHandle;
