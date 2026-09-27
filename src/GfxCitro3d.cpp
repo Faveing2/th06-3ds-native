@@ -244,15 +244,15 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
     // Matricies need to be transposed
     switch (type)
     {
-    // case MATRIX_MODEL:
-    //     for (int i = 0; i < 4; i++)
-    //     {
-    //         this->modelViewMatrix.r[i].x = matrix.m[0][i];
-    //         this->modelViewMatrix.r[i].y = matrix.m[1][i];
-    //         this->modelViewMatrix.r[i].z = matrix.m[2][i];
-    //         this->modelViewMatrix.r[i].w = matrix.m[3][i];
-    //     }
-    //     break;
+    case MATRIX_MODEL:
+        for (int i = 0; i < 4; i++)
+        {
+            this->modelViewMatrix.r[i].x = matrix.m[0][i];
+            this->modelViewMatrix.r[i].y = matrix.m[1][i];
+            this->modelViewMatrix.r[i].z = matrix.m[2][i];
+            this->modelViewMatrix.r[i].w = matrix.m[3][i];
+        }
+        break;
     case MATRIX_VIEW:
         for (int i = 0; i < 4; i++)
         {
@@ -428,15 +428,21 @@ inline SDL_PixelFormatEnum GetSDLPixelFormat(PixelFormat fmt, PixelDataType type
     switch (type)
     {
     case PIXEL_UNSIGNED_BYTE:
-        if (fmt == PIXEL_RGB)
+        if (fmt == PIXEL_RGB){
+            printf("SDL RGB32");
             return SDL_PIXELFORMAT_RGB24;
-        else
+        }else{
+            printf("SDL ARGB32");
             return SDL_PIXELFORMAT_RGBA32;
+        }
     case PIXEL_UNSIGNED_SHORT_4_4_4_4:
+        printf("SDL ARGB24");
         return SDL_PIXELFORMAT_RGBA4444;
     case PIXEL_UNSIGNED_SHORT_5_5_5_1:
+        printf("SDL RGBA5551");
         return SDL_PIXELFORMAT_RGBA5551;
     case PIXEL_UNSIGNED_SHORT_5_6_5:
+        printf("SDL RGB565");
         return SDL_PIXELFORMAT_RGB565;
     }
 }
@@ -448,10 +454,11 @@ inline GPU_TEXCOLOR Get3DSPixelFormat(PixelFormat fmt, PixelDataType type)
     switch (type)
     {
     case PIXEL_UNSIGNED_BYTE:
-        if (fmt == PIXEL_RGB)
+        if (fmt == PIXEL_RGB){
             return GPU_RGB8;
-        else
+        }else{
             return GPU_RGBA8;
+        }
     case PIXEL_UNSIGNED_SHORT_4_4_4_4:
         return GPU_RGBA4;
     case PIXEL_UNSIGNED_SHORT_5_5_5_1:
@@ -615,11 +622,28 @@ std::vector<u8> SwizzleTexture(
                 static_cast<std::size_t>(pixelIndex) *
                 bytesPerPixel;
 
+            // For some reason this pixel format is reversed?
+            if (format == GPU_RGBA8){
+                const u8* src = input + sourceOffset;
+                u8* dst = output.data() + outputOffset;
+
+                dst[0] = src[3];
+                dst[1] = src[2];
+                dst[2] = src[1];
+                dst[3] = src[0];
+            }else{
             std::memcpy(
                 output.data() + outputOffset,
                 input + sourceOffset,
                 bytesPerPixel
-            );
+            );   
+            }
+
+            // std::memcpy(
+            //     output.data() + outputOffset,
+            //     input + sourceOffset,
+            //     bytesPerPixel
+            // );
         }
     }
 
