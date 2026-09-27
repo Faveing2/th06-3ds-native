@@ -1,2 +1,7 @@
 build
 romfs/*
+th06-3ds-native.elf
+th06-3ds-native.3dsx
+th06-3ds-native.smdh
+src/.DS_Store
+.DS_Store
