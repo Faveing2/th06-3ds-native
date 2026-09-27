@@ -121,25 +121,25 @@ u8 *FileSystem::OpenPath(const char *filepath, int isExternalResource)
 
 int FileSystem::WriteDataToFile(const char *path, const void *data, size_t size)
 {
-    // FILE *f;
+    FILE *f;
 
-    // f = FopenUTF8(path, "wb");
-    // if (f == NULL)
-    // {
-    //     return -1;
-    // }
-    // else
-    // {
-    //     if (std::fwrite(data, 1, size, f) != size)
-    //     {
-    //         std::fclose(f);
-    //         return -2;
-    //     }
-    //     else
-    //     {
-    //         std::fclose(f);
-    //         return 0;
-    //     }
-    // }
+    f = FopenUTF8(path, "wb");
+    if (f == NULL)
+    {
+        return -1;
+    }
+    else
+    {
+        if (std::fwrite(data, 1, size, f) != size)
+        {
+            std::fclose(f);
+            return -2;
+        }
+        else
+        {
+            std::fclose(f);
+            return 0;
+        }
+    }
     return 0;
 }

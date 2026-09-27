@@ -1065,6 +1065,7 @@ void Gui::DrawGameScene()
     g_Supervisor.viewport.width = GAME_WINDOW_WIDTH;
     g_Supervisor.viewport.height = GAME_WINDOW_HEIGHT;
     g_AnmManager->SetProjectionMode(PROJECTION_MODE_PERSPECTIVE);
+    //g_AnmManager->SetProjectionMode(PROJECTION_MODE_ORTHOGRAPHIC);
     g_Supervisor.viewport.Set();
     //    g_Supervisor.d3dDevice->SetViewport(&g_Supervisor.viewport);
 

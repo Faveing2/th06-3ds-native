@@ -25,6 +25,8 @@
 static void* vbo_data;
 static PrintConsole bottomScreen;
 
+static C3D_FogLut fog_Lut;
+
 #define POSITION_ATTRIBUTE_INDEX 0
 #define TEX_CORDS_ATTRIBUTE_INDEX 1
 #define DIFFUSE_ATTRIBUTE_INDEX 2
@@ -160,6 +162,11 @@ GfxInterface *GfxCitro3d::Init(){
     1.0f,    // far
     true     // account for 3DS screen orientation
     );
+
+    // FogLut_Exp(&fog_Lut, 0.05f, 1.5f, 0.01f, 20.0f);
+	// C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
+	// C3D_FogColor(0xD8B068);
+	// C3D_FogLutBind(&fog_Lut);
 
     return self;
 }   
@@ -618,22 +625,22 @@ std::vector<u8> SwizzleTexture(
 
     return output;
 }
-u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height){
+// u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height){
     
-    u32 pixelcount = width*height*3;
+//     u32 pixelcount = width*height*3;
 
-    u8* output = new u8[pixelcount];
+//     u8* output = new u8[pixelcount];
     
-    for(u32 i = 0; i < pixelcount; i++){
-        const u32 offset = i*3;
+//     for(u32 i = 0; i < pixelcount; i++){
+//         const u32 offset = i*3;
 
-        output[offset + 0] = data[offset + 2];
-        output[offset + 1] = data[offset + 1];
-        output[offset + 2] = data[offset + 0];
-    }
+//         output[offset + 0] = data[offset + 2];
+//         output[offset + 1] = data[offset + 1];
+//         output[offset + 2] = data[offset + 0];
+//     }
     
-    return output;
-}
+//     return output;
+// }
 
 void CopyTextureData(Texture3ds& texture, const void* data, u32 width, u32 height, GPU_TEXCOLOR format, u32 bpp){
     std::size_t size = static_cast<std::size_t>(width)*static_cast<std::size_t>(height)*static_cast<std::size_t>(bpp);

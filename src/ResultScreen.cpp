@@ -519,7 +519,7 @@ void ResultScreen::WriteScore(ResultScreen *resultScreen)
         bytes++;
         remainingSize--;
     }
-    FileSystem::WriteDataToFile("score.dat", fileBuffer, sizeOfFile);
+    FileSystem::WriteDataToFile("/th06/score.dat", fileBuffer, sizeOfFile);
     std::free(fileBuffer);
 }
 
@@ -2114,7 +2114,7 @@ ZunResult ResultScreen::AddedCallback(ResultScreen *resultScreen)
     }
 
     resultScreen->lastBestScoresCursor = 0;
-    resultScreen->scoreDat = ResultScreen::OpenScore("score.dat");
+    resultScreen->scoreDat = ResultScreen::OpenScore("/th06/score.dat");
 
     for (i = 0; i < HSCR_NUM_DIFFICULTIES; i++)
     {

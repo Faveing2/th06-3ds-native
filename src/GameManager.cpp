@@ -328,7 +328,7 @@ ZunResult GameManager::AddedCallback(GameManager *mgr)
             catk->numAttempts = 0;
             catk->numSuccess = 0;
         }
-        scoredat = ResultScreen::OpenScore("score.dat");
+        scoredat = ResultScreen::OpenScore("/th06/score.dat");
         g_GameManager.highScore =
             ResultScreen::GetHighScore(scoredat, NULL, g_GameManager.CharacterShotType(), g_GameManager.difficulty);
         ResultScreen::ParseCatk(scoredat, mgr->catk);

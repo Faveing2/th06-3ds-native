@@ -2250,7 +2250,7 @@ ZunResult MainMenu::AddedCallback(MainMenu *m)
     m->framesActive = 0;
     m->unk_10f28 = 0x10;
     m->currentReplay = NULL;
-    scoredat = ResultScreen::OpenScore("score.dat");
+    scoredat = ResultScreen::OpenScore("/th06/score.dat");
     ResultScreen::ParseClrd(scoredat, g_GameManager.clrd);
     ResultScreen::ParsePscr(scoredat, (Pscr *)g_GameManager.pscr);
     ResultScreen::ReleaseScoreDat(scoredat);
