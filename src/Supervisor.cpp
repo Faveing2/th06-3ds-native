@@ -19,6 +19,7 @@
 #include "inttypes.hpp"
 #include "utils.hpp"
 #include <citro3d.h>
+#include <cstring>
 
 #include <SDL2/SDL_joystick.h>
 #include <SDL2/SDL_timer.h>
@@ -694,7 +695,7 @@ ZunResult Supervisor::LoadConfig(const char *path)
         g_Supervisor.cfg.version = GAME_VERSION;
         g_Supervisor.cfg.padXAxis = 600;
         g_Supervisor.cfg.padYAxis = 600;
-        wavFile = FileSystem::FopenUTF8("th06/bgm/th06_01.wav", "rb");
+        wavFile = FileSystem::FopenUTF8("/th06/bgm/th06_01.wav", "rb");
         if (wavFile != NULL)
         {
             g_Supervisor.cfg.musicMode = WAV;
@@ -728,7 +729,7 @@ ZunResult Supervisor::LoadConfig(const char *path)
             g_Supervisor.cfg.version = GAME_VERSION;
             g_Supervisor.cfg.padXAxis = 600;
             g_Supervisor.cfg.padYAxis = 600;
-            wavFile2 = FileSystem::FopenUTF8("th06/bgm/th06_01.wav", "rb");
+            wavFile2 = FileSystem::FopenUTF8("/th06/bgm/th06_01.wav", "rb");
             if (wavFile2 != NULL)
             {
                 g_Supervisor.cfg.musicMode = WAV;
@@ -846,9 +847,11 @@ ZunResult Supervisor::PlayMidiFile(i32 midiFileIdx)
 
 ZunResult Supervisor::PlayAudio(const char *path)
 {
-    char wavName[256];
-    char wavPos[256];
+    char wavName[400];
+    char wavPos[400];
     char *pathExtension;
+    char th_wav[400];
+    char th_wav_pos[400];
 
     if (g_Supervisor.cfg.musicMode == MIDI)
     {
@@ -871,8 +874,13 @@ ZunResult Supervisor::PlayAudio(const char *path)
         pathExtension[1] = 'p';
         pathExtension[2] = 'o';
         pathExtension[3] = 's';
-        g_SoundPlayer.LoadWav(wavName);
-        if (g_SoundPlayer.LoadPos(wavPos) < ZUN_SUCCESS)
+
+        // Add "/th06/" to the path this is where the BGM files are expected to be located
+        std::snprintf(th_wav, sizeof(th_wav), "/th06/%s", wavName);
+        std::snprintf(th_wav_pos, sizeof(th_wav_pos), "/th06/%s", wavPos);
+
+        g_SoundPlayer.LoadWav(th_wav);
+        if (g_SoundPlayer.LoadPos(th_wav_pos) < ZUN_SUCCESS)
         {
             g_SoundPlayer.PlayBGM(false);
         }
