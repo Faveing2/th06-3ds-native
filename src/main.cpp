@@ -86,7 +86,7 @@ restart:
 
     g_GameWindow.curFrame = 0;
 
-    while (true)
+    while (aptMainLoop())
     {
         SDL_Event e;
 
