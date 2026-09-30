@@ -53,7 +53,7 @@ GfxInterface *GfxCitro3d::Init(){
     C3D_Init(0x100000);
 
     self->target = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
-    C3D_SetViewport(0,0,400,240);
+    //C3D_SetViewport(0,0,400,240);
     C3D_RenderTargetSetOutput(self->target, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
 
     consoleInit(GFX_BOTTOM, &bottomScreen);
@@ -152,16 +152,26 @@ GfxInterface *GfxCitro3d::Init(){
 
     C3D_CullFace(GPU_CULL_NONE);
 
-    Mtx_OrthoTilt(
-    &self->projectionMatrix,
-    0.0f,    // left
-    640.0f,  // right
-    480.0f,    // bottom
-    0.0f,  // top
-    0.0f,    // near
-    1.0f,    // far
-    true     // account for 3DS screen orientation
+    // Mtx_OrthoTilt(
+    // &self->projectionMatrix,
+    // 0.0f,    // left
+    // 640.0f,  // right
+    // 480.0f,    // bottom
+    // 0.0f,  // top
+    // 0.0f,    // near
+    // 1.0f,    // far
+    // true     // account for 3DS screen orientation
+    // );
+
+
+    Mtx_Identity(&self->correctionMatrix);
+    Mtx_RotateZ(
+        &self->correctionMatrix,
+        -M_PI / 2.0f,
+        false
     );
+
+    //Mtx_Identity(&self->correctionMatrix);
 
     // FogLut_Exp(&fog_Lut, 0.05f, 1.5f, 0.01f, 20.0f);
 	// C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
@@ -266,10 +276,10 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
         for (int i = 0; i < 4; i++)
         {
             // Using precalculated projection matrix
-            // this->projectionMatrix.r[i].x = matrix.m[0][i];
-            // this->projectionMatrix.r[i].y = matrix.m[1][i];
-            // this->projectionMatrix.r[i].z = matrix.m[2][i];
-            // this->projectionMatrix.r[i].w = matrix.m[3][i];
+            this->projectionMatrix.r[i].x = matrix.m[0][i];
+            this->projectionMatrix.r[i].y = matrix.m[1][i];
+            this->projectionMatrix.r[i].z = matrix.m[2][i];
+            this->projectionMatrix.r[i].w = matrix.m[3][i];
             // this->projectionMatrix.r[i].x = matrix.m[i][0];
             // this->projectionMatrix.r[i].y = matrix.m[i][1];
             // this->projectionMatrix.r[i].z = matrix.m[i][2];
@@ -311,8 +321,39 @@ void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){
     viewport3ds[2] = width;
     viewport3ds[3] = height;
 
-    // Viewport should never have to be changed?
-    //C3D_SetViewport(x, y, width, height);
+    const f32 scalex = 0.5f; //0.625f; (For full screen) // x scale
+    const f32 scaley = 0.5f;
+
+    const f32 screenX = 40.0f + (f32)x * scalex;
+    const f32 screenY = (f32)y * scaley;
+    const f32 screenW = (f32)width * scalex;
+    const f32 screenH = (f32)height * scaley;
+
+    // const f32 targetX = 240.0f - (screenY + screenH);
+    // const f32 targetY = screenX;
+
+    const f32 targetX = screenY;
+    const f32 targetY = 400.0f - (screenX + screenW);
+
+    C3D_SetViewport(targetX,targetY,screenH,screenW);
+
+    // const f32 offsetX = (400.0f - (640.0f * scalex)) * 0.5f;
+    
+    // const f32 vx = (offsetX + ((f32)x*scalex));
+    // const f32 vy = 240.0f - ((f32)(y + height) * scalex);
+    // const f32 vw = (f32)width*scalex;
+    // const f32 vh = (f32)height*scaley;
+
+    // printf("(%i,%i,%i,%i)\n",x,y,width,height);
+    // printf("(%f,%f,%f,%f)\n",vy,vx,vh,vw);
+    // C3D_SetViewport(vy,vx,vh,vw);
+
+    // C3D_SetViewport(
+    //     0,      // x
+    //     40,     // padding corresponding to physical side bars
+    //     240,    // logical target width
+    //     320     // logical target height
+    // );
 }
 
 void GfxCitro3d::SetDepthRange(f32 nearPlane, f32 farPlane){
@@ -787,6 +828,12 @@ void GfxCitro3d::SetRhw(bool enable){
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
 
+    Mtx_Multiply(
+        &this->correctedMatrix,
+        &this->correctionMatrix,
+        &this->projectionMatrix
+    );
+
     GPU_Primitive_t C3DPrim;
 
     const VertexDiffuseXyzrhw* vertexdiffuseXyzrhw = nullptr; // This type never actually gets sent think?
@@ -817,7 +864,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         this->first_draw = false;
     }
 
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrix);
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrix);
 
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
 

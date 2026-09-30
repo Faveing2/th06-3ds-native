@@ -122,6 +122,10 @@ struct GfxCitro3d : GfxInterface
         C3D_Mtx modelViewMatrix;;
         C3D_Mtx projectionMatrix;
         C3D_Mtx textureMatrixMatrix;
+        C3D_Mtx correctionMatrix;
+        C3D_Mtx correctedMatrix;
+        C3D_Mtx scaleMatrix;
+        C3D_Mtx rotationMatrix;
 
         void *vertexBuffer;
         std::size_t vertexCapacity;
