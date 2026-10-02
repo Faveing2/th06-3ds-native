@@ -1069,7 +1069,7 @@ void Player::SpawnBullets(Player *p, u32 timer)
         }
         if (bulletResult >= 0)
         {
-            curBullet->position.x += 33;
+            //curBullet->position.x += 33;
             curBullet->sprite.pos.x = curBullet->position.x;
             curBullet->sprite.pos.y = curBullet->position.y;
             curBullet->sprite.pos.z = 0.495;

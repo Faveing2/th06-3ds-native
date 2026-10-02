@@ -4,6 +4,7 @@
 #include "inttypes.hpp"
 #include <cmath>
 #include <cstring>
+#include <Citro3d.h>
 
 #ifndef __has_builtin
 #define __has_builtin(name) 0
@@ -545,6 +546,11 @@ inline ZunMatrix createViewMatrix(const ZunVec3 &camera, const ZunVec3 &target, 
 // Sets matrix mode to projection and clobbers current matrix
 inline ZunMatrix perspectiveMatrixFromFOV(f32 verticalFOV, f32 aspectRatio, f32 nearPlane, f32 farPlane)
 {
+
+    // I believe the matrix this generates is not compatible with the way the PICA200 renders, it could be a clip space issue?
+    // So citro3d has a helper function to generate the correct perspective matrix void Mtx_Persp(C3D_Mtx* mtx, float fovy, float aspect, float near, float far, bool isLeftHanded);
+    // So the plan might be to use this to generate a correct perspective matrix, then turn it into a zun matrix and return that. So that the matrix sent to the Citro3d backend is correct. 
+
     // D3D has pixels at integer locations, but OpenGL uses half integer pixels. This may need correction
     // https://www.slideshare.net/slideshow/opengl-32-and-more/2172343
     // There are some other clip space differences between D3D and OpenGL, but they shouldn't matter for EoSD
@@ -557,17 +563,32 @@ inline ZunMatrix perspectiveMatrixFromFOV(f32 verticalFOV, f32 aspectRatio, f32 
     f32 zScale = (farPlane + nearPlane) / (farPlane - nearPlane);
 
     ZunMatrix perspectiveMatrix;
-
+    C3D_Mtx picoPerspectiveMatrix;
+    
+    std::memset(&picoPerspectiveMatrix, 0, sizeof(picoPerspectiveMatrix));
     std::memset(perspectiveMatrix.m, 0, sizeof(perspectiveMatrix.m));
 
-    perspectiveMatrix.m[0][0] = nearPlane / horizontal;
-    perspectiveMatrix.m[1][1] = nearPlane / vertical;
+    Mtx_Persp(&picoPerspectiveMatrix, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, true);
 
-    perspectiveMatrix.m[2][2] = zScale;
-    perspectiveMatrix.m[3][2] = -nearPlane * zScale - nearPlane;
+    perspectiveMatrix.m[0][0] = picoPerspectiveMatrix.r[0].x;
+    perspectiveMatrix.m[1][0] = picoPerspectiveMatrix.r[0].y;
+    perspectiveMatrix.m[2][0] = picoPerspectiveMatrix.r[0].z;
+    perspectiveMatrix.m[3][0] = picoPerspectiveMatrix.r[0].w;
 
-    perspectiveMatrix.m[2][3] = 1.0f;
-    perspectiveMatrix.m[3][3] = 0.0f;
+    perspectiveMatrix.m[0][1] = picoPerspectiveMatrix.r[1].x;
+    perspectiveMatrix.m[1][1] = picoPerspectiveMatrix.r[1].y;
+    perspectiveMatrix.m[2][1] = picoPerspectiveMatrix.r[1].z;
+    perspectiveMatrix.m[3][1] = picoPerspectiveMatrix.r[1].w;
+
+    perspectiveMatrix.m[0][2] = picoPerspectiveMatrix.r[2].x;
+    perspectiveMatrix.m[1][2] = picoPerspectiveMatrix.r[2].y;
+    perspectiveMatrix.m[2][2] = picoPerspectiveMatrix.r[2].z;
+    perspectiveMatrix.m[3][2] = picoPerspectiveMatrix.r[2].w;
+
+    perspectiveMatrix.m[0][3] = picoPerspectiveMatrix.r[3].x;
+    perspectiveMatrix.m[1][3] = picoPerspectiveMatrix.r[3].y;
+    perspectiveMatrix.m[2][3] = picoPerspectiveMatrix.r[3].z;
+    perspectiveMatrix.m[3][3] = picoPerspectiveMatrix.r[3].w;
 
     return perspectiveMatrix;
 }

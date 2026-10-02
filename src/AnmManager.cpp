@@ -1311,251 +1311,192 @@ ZunResult AnmManager::Draw3(const AnmVm *vm)
         modelView = originalView * worldTransformMatrix;
         this->SetTransformMatrix(MATRIX_VIEW, modelView);
     }
+    else
+    {
+        for (int i = 0; i < 4; i++)
+            g_PrimitivesToDrawVertexBuf[i].position =
+                ZunVec4(worldTransformMatrix * this->vertexBufferContents[i].position, 1.0f);
 
-    return this->DrawOrthographic(vm, true);
+        g_PrimitivesToDrawVertexBuf[0].textureUV.x = g_PrimitivesToDrawVertexBuf[2].textureUV.x =
+            vm->sprite->uvStart.x + vm->uvScrollPos.x;
+        g_PrimitivesToDrawVertexBuf[1].textureUV.x = g_PrimitivesToDrawVertexBuf[3].textureUV.x =
+            vm->sprite->uvEnd.x + vm->uvScrollPos.x;
+        g_PrimitivesToDrawVertexBuf[0].textureUV.y = g_PrimitivesToDrawVertexBuf[1].textureUV.y =
+            vm->sprite->uvStart.y + vm->uvScrollPos.y;
+        g_PrimitivesToDrawVertexBuf[2].textureUV.y = g_PrimitivesToDrawVertexBuf[3].textureUV.y =
+            vm->sprite->uvEnd.y + vm->uvScrollPos.y;
+    }
 
-    // else
-    // {
-    //     for (int i = 0; i < 4; i++)
-    //         g_PrimitivesToDrawVertexBuf[i].position =
-    //             ZunVec4(worldTransformMatrix * this->vertexBufferContents[i].position, 1.0f);
+    // Load sprite if vm->sprite is not the same as current sprite.
+    if (this->currentSprite != vm->sprite)
+    {
+        this->currentSprite = vm->sprite;
+        if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) != 0)
+        {
+            textureMatrix = vm->matrix;
+            textureMatrix.m[3][0] = vm->sprite->uvStart.x + vm->uvScrollPos.x;
+            textureMatrix.m[3][1] = vm->sprite->uvStart.y + vm->uvScrollPos.y;
 
-    //     g_PrimitivesToDrawVertexBuf[0].textureUV.x = g_PrimitivesToDrawVertexBuf[2].textureUV.x =
-    //         vm->sprite->uvStart.x + vm->uvScrollPos.x;
-    //     g_PrimitivesToDrawVertexBuf[1].textureUV.x = g_PrimitivesToDrawVertexBuf[3].textureUV.x =
-    //         vm->sprite->uvEnd.x + vm->uvScrollPos.x;
-    //     g_PrimitivesToDrawVertexBuf[0].textureUV.y = g_PrimitivesToDrawVertexBuf[1].textureUV.y =
-    //         vm->sprite->uvStart.y + vm->uvScrollPos.y;
-    //     g_PrimitivesToDrawVertexBuf[2].textureUV.y = g_PrimitivesToDrawVertexBuf[3].textureUV.y =
-    //         vm->sprite->uvEnd.y + vm->uvScrollPos.y;
-    // }
+            this->SetTransformMatrix(MATRIX_TEXTURE, textureMatrix);
+        }
 
-    // // Load sprite if vm->sprite is not the same as current sprite.
-    // if (this->currentSprite != vm->sprite)
-    // {
-    //     this->currentSprite = vm->sprite;
-    //     if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) != 0)
-    //     {
-    //         textureMatrix = vm->matrix;
-    //         textureMatrix.m[3][0] = vm->sprite->uvStart.x + vm->uvScrollPos.x;
-    //         textureMatrix.m[3][1] = vm->sprite->uvStart.y + vm->uvScrollPos.y;
+        this->SetCurrentTexture(this->textures[vm->sprite->sourceFileIndex].handle);
+    }
 
-    //         this->SetTransformMatrix(MATRIX_TEXTURE, textureMatrix);
-    //     }
+    if (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0)
+    {
+        this->SetVertexAttributes(VERTEX_ATTR_TEX_COORD);
+    }
+    else
+    {
+        this->SetVertexAttributes(VERTEX_ATTR_TEX_COORD | VERTEX_ATTR_DIFFUSE);
+    }
 
-    //     this->SetCurrentTexture(this->textures[vm->sprite->sourceFileIndex].handle);
-    // }
+    // Reset the render state based on the settings fo the given VM.
+    this->SetRenderStateForVm(vm);
 
-    // if (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0)
-    // {
-    //     this->SetVertexAttributes(VERTEX_ATTR_TEX_COORD);
-    // }
-    // else
-    // {
-    //     this->SetVertexAttributes(VERTEX_ATTR_TEX_COORD | VERTEX_ATTR_DIFFUSE);
-    // }
+    // Draw the VM.
+    if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) == 0)
+    {
 
-    // // Reset the render state based on the settings fo the given VM.
-    // this->SetRenderStateForVm(vm);
+        this->AddSpriteToDrawBuffer(g_PrimitivesToDrawVertexBuf);
+    }
+    else
+    {
+        this->SetAttributePointer(VERTEX_ARRAY_POSITION, sizeof(*g_PrimitivesToDrawUnknown),
+                                  &g_PrimitivesToDrawUnknown[0].position);
+        this->SetAttributePointer(VERTEX_ARRAY_TEX_COORD, sizeof(*g_PrimitivesToDrawUnknown),
+                                  &g_PrimitivesToDrawUnknown[0].textureUV);
+        this->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*g_PrimitivesToDrawUnknown),
+                                  &g_PrimitivesToDrawUnknown[0].diffuse);
 
-    // // Draw the VM.
-    // if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) == 0)
-    // {
-    //     this->AddSpriteToDrawBuffer(g_PrimitivesToDrawVertexBuf);
-    //     printf("Added sprite to draw buffer");
-    // }
-    // else
-    // {
-    //     this->SetAttributePointer(VERTEX_ARRAY_POSITION, sizeof(*g_PrimitivesToDrawUnknown),
-    //                               &g_PrimitivesToDrawUnknown[0].position);
-    //     this->SetAttributePointer(VERTEX_ARRAY_TEX_COORD, sizeof(*g_PrimitivesToDrawUnknown),
-    //                               &g_PrimitivesToDrawUnknown[0].textureUV);
-    //     this->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*g_PrimitivesToDrawUnknown),
-    //                               &g_PrimitivesToDrawUnknown[0].diffuse);
-
-    //     g_GfxBackend->SetRhw(false);
-    //     this->BackendDrawCall();
-    //     this->SetTransformMatrix(MATRIX_VIEW, originalView);
-    // }
+        g_GfxBackend->SetRhw(false);
+        this->BackendDrawCall();
+        this->SetTransformMatrix(MATRIX_VIEW, originalView);
+    }
 
     return ZUN_SUCCESS;
 }
 
 ZunResult AnmManager::Draw2(const AnmVm *vm)
 {
-    f32 zSine;
-    f32 zCosine;
-    f32 spriteXCenter;
-    f32 spriteYCenter;
-    f32 xOffset;
-    f32 yOffset;
-    f32 z;
+    ZunMatrix worldTransformMatrix;
+    ZunMatrix unusedMatrix;
+    ZunMatrix textureMatrix;
 
-    if (vm->rotation.z == 0.0f)
-    {
-        return this->DrawNoRotation(vm);
-    }
-    if (vm->flags.isVisible == 0)
+    if (!vm->flags.isVisible)
     {
         return ZUN_ERROR;
     }
-    if (vm->flags.flag1 == 0)
+    if (!vm->flags.flag1)
     {
         return ZUN_ERROR;
     }
+
+    if (vm->rotation.x != 0 || vm->rotation.y != 0 || vm->rotation.z != 0)
+    {
+        return this->Draw3(vm);
+    }
+
     if (vm->color == 0)
     {
         return ZUN_ERROR;
     }
-    z = vm->rotation.z;
-    fsincos_wrapper(&zSine, &zCosine, z);
-    xOffset = rintf(vm->pos.x);
-    yOffset = rintf(vm->pos.y);
-    spriteXCenter = rintf((vm->sprite->widthPx * vm->scaleX) / 2.0f);
-    spriteYCenter = rintf((vm->sprite->heightPx * vm->scaleY) / 2.0f);
-    this->TranslateRotation(&g_PrimitivesToDrawVertexBuf[0], -spriteXCenter - 0.5f, -spriteYCenter - 0.5f, zSine,
-                            zCosine, xOffset, yOffset);
-    this->TranslateRotation(&g_PrimitivesToDrawVertexBuf[1], spriteXCenter - 0.5f, -spriteYCenter - 0.5f, zSine,
-                            zCosine, xOffset, yOffset);
-    this->TranslateRotation(&g_PrimitivesToDrawVertexBuf[2], -spriteXCenter - 0.5f, spriteYCenter - 0.5f, zSine,
-                            zCosine, xOffset, yOffset);
-    this->TranslateRotation(&g_PrimitivesToDrawVertexBuf[3], spriteXCenter - 0.5f, spriteYCenter - 0.5f, zSine, zCosine,
-                            xOffset, yOffset);
-    g_PrimitivesToDrawVertexBuf[0].position.z = g_PrimitivesToDrawVertexBuf[1].position.z =
-        g_PrimitivesToDrawVertexBuf[2].position.z = g_PrimitivesToDrawVertexBuf[3].position.z = vm->pos.z;
+
+    this->SetProjectionMode(PROJECTION_MODE_PERSPECTIVE);
+
+    worldTransformMatrix = vm->matrix;
+    worldTransformMatrix.m[3][0] = rintf(vm->pos.x) - 0.5f;
+    worldTransformMatrix.m[3][1] = -rintf(vm->pos.y) + 0.5f;
     if ((vm->flags.anchor & AnmVmAnchor_Left) != 0)
     {
-        g_PrimitivesToDrawVertexBuf[0].position.x += spriteXCenter;
-        g_PrimitivesToDrawVertexBuf[1].position.x += spriteXCenter;
-        g_PrimitivesToDrawVertexBuf[2].position.x += spriteXCenter;
-        g_PrimitivesToDrawVertexBuf[3].position.x += spriteXCenter;
+        worldTransformMatrix.m[3][0] += (vm->sprite->widthPx * vm->scaleX) / 2.0f;
     }
     if ((vm->flags.anchor & AnmVmAnchor_Top) != 0)
     {
-        g_PrimitivesToDrawVertexBuf[0].position.y += spriteYCenter;
-        g_PrimitivesToDrawVertexBuf[1].position.y += spriteYCenter;
-        g_PrimitivesToDrawVertexBuf[2].position.y += spriteYCenter;
-        g_PrimitivesToDrawVertexBuf[3].position.y += spriteYCenter;
+        worldTransformMatrix.m[3][1] -= (vm->sprite->heightPx * vm->scaleY) / 2.0f;
     }
-    return this->DrawOrthographic(vm, false);
-    // ZunMatrix worldTransformMatrix;
-    // ZunMatrix unusedMatrix;
-    // ZunMatrix textureMatrix;
+    worldTransformMatrix.m[3][2] = vm->pos.z;
+    worldTransformMatrix.m[0][0] *= vm->scaleX;
+    worldTransformMatrix.m[1][1] *= -vm->scaleY;
 
-    // if (!vm->flags.isVisible)
-    // {
-    //     return ZUN_ERROR;
-    // }
-    // if (!vm->flags.flag1)
-    // {
-    //     return ZUN_ERROR;
-    // }
+    ZunMatrix originalView = this->dirtyTransformMatrices[MATRIX_VIEW];
+    ZunMatrix modelView;
 
-    // if (vm->rotation.x != 0 || vm->rotation.y != 0 || vm->rotation.z != 0)
-    // {
-    //     return this->Draw3(vm);
-    // }
+    if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) != 0)
+    {
+        modelView = originalView * worldTransformMatrix;
+        this->SetTransformMatrix(MATRIX_VIEW, modelView);
+    }
+    else
+    {
+        for (int i = 0; i < 4; i++)
+            g_PrimitivesToDrawVertexBuf[i].position =
+                ZunVec4(worldTransformMatrix * this->vertexBufferContents[i].position, 1.0f);
 
-    // if (vm->color == 0)
-    // {
-    //     return ZUN_ERROR;
-    // }
+        g_PrimitivesToDrawVertexBuf[0].textureUV.x = g_PrimitivesToDrawVertexBuf[2].textureUV.x =
+            vm->sprite->uvStart.x + vm->uvScrollPos.x;
+        g_PrimitivesToDrawVertexBuf[1].textureUV.x = g_PrimitivesToDrawVertexBuf[3].textureUV.x =
+            vm->sprite->uvEnd.x + vm->uvScrollPos.x;
+        g_PrimitivesToDrawVertexBuf[0].textureUV.y = g_PrimitivesToDrawVertexBuf[1].textureUV.y =
+            vm->sprite->uvStart.y + vm->uvScrollPos.y;
+        g_PrimitivesToDrawVertexBuf[2].textureUV.y = g_PrimitivesToDrawVertexBuf[3].textureUV.y =
+            vm->sprite->uvEnd.y + vm->uvScrollPos.y;
+    }
+    if (this->currentSprite != vm->sprite)
+    {
+        this->currentSprite = vm->sprite;
+        if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) != 0)
+        {
+            textureMatrix = vm->matrix;
+            textureMatrix.m[3][0] = vm->sprite->uvStart.x + vm->uvScrollPos.x;
+            textureMatrix.m[3][1] = vm->sprite->uvStart.y + vm->uvScrollPos.y;
 
-    // SetProjectionMode(PROJECTION_MODE_PERSPECTIVE);
-    // //this->SetProjectionMode(PROJECTION_MODE_ORTHOGRAPHIC);
+            this->SetTransformMatrix(MATRIX_TEXTURE, textureMatrix);
+        }
 
-    // worldTransformMatrix = vm->matrix;
-    // worldTransformMatrix.m[3][0] = rintf(vm->pos.x) - 0.5f;
-    // worldTransformMatrix.m[3][1] = -rintf(vm->pos.y) + 0.5f;
-    // if ((vm->flags.anchor & AnmVmAnchor_Left) != 0)
-    // {
-    //     worldTransformMatrix.m[3][0] += (vm->sprite->widthPx * vm->scaleX) / 2.0f;
-    // }
-    // if ((vm->flags.anchor & AnmVmAnchor_Top) != 0)
-    // {
-    //     worldTransformMatrix.m[3][1] -= (vm->sprite->heightPx * vm->scaleY) / 2.0f;
-    // }
-    // worldTransformMatrix.m[3][2] = vm->pos.z;
-    // worldTransformMatrix.m[0][0] *= vm->scaleX;
-    // worldTransformMatrix.m[1][1] *= -vm->scaleY;
+        //        if (this->currentTextureHandle != this->textures[vm->sprite->sourceFileIndex].handle)
+        //        {
+        //            this->currentTexture = this->textures[vm->sprite->sourceFileIndex];
+        //            g_Supervisor.d3dDevice->SetTexture(0, this->currentTexture);
+        //        }
 
-    // ZunMatrix originalView = this->dirtyTransformMatrices[MATRIX_VIEW];
-    // ZunMatrix modelView;
+        this->SetCurrentTexture(this->textures[vm->sprite->sourceFileIndex].handle);
 
-    // if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) != 0)
-    // {
-    //     modelView = originalView * worldTransformMatrix;
-    //     this->SetTransformMatrix(MATRIX_VIEW, modelView);
-    // }
-    // else
-    // {
-    //     for (int i = 0; i < 4; i++)
-    //         g_PrimitivesToDrawVertexBuf[i].position =
-    //             ZunVec4(worldTransformMatrix * this->vertexBufferContents[i].position, 1.0f);
+        if (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0)
+        {
+            this->SetVertexAttributes(VERTEX_ATTR_TEX_COORD);
+        }
+        else
+        {
+            this->SetVertexAttributes(VERTEX_ATTR_TEX_COORD | VERTEX_ATTR_DIFFUSE);
+        }
+    }
 
-    //     g_PrimitivesToDrawVertexBuf[0].textureUV.x = g_PrimitivesToDrawVertexBuf[2].textureUV.x =
-    //         vm->sprite->uvStart.x + vm->uvScrollPos.x;
-    //     g_PrimitivesToDrawVertexBuf[1].textureUV.x = g_PrimitivesToDrawVertexBuf[3].textureUV.x =
-    //         vm->sprite->uvEnd.x + vm->uvScrollPos.x;
-    //     g_PrimitivesToDrawVertexBuf[0].textureUV.y = g_PrimitivesToDrawVertexBuf[1].textureUV.y =
-    //         vm->sprite->uvStart.y + vm->uvScrollPos.y;
-    //     g_PrimitivesToDrawVertexBuf[2].textureUV.y = g_PrimitivesToDrawVertexBuf[3].textureUV.y =
-    //         vm->sprite->uvEnd.y + vm->uvScrollPos.y;
-    // }
-    // if (this->currentSprite != vm->sprite)
-    // {
-    //     this->currentSprite = vm->sprite;
-    //     if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) != 0)
-    //     {
-    //         textureMatrix = vm->matrix;
-    //         textureMatrix.m[3][0] = vm->sprite->uvStart.x + vm->uvScrollPos.x;
-    //         textureMatrix.m[3][1] = vm->sprite->uvStart.y + vm->uvScrollPos.y;
+    this->SetRenderStateForVm(vm);
 
-    //         this->SetTransformMatrix(MATRIX_TEXTURE, textureMatrix);
-    //     }
+    if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) == 0)
+    {
+        this->AddSpriteToDrawBuffer(g_PrimitivesToDrawVertexBuf);
+    }
+    else
+    {
+        this->SetAttributePointer(VERTEX_ARRAY_POSITION, sizeof(*g_PrimitivesToDrawUnknown),
+                                  &g_PrimitivesToDrawUnknown[0].position);
+        this->SetAttributePointer(VERTEX_ARRAY_TEX_COORD, sizeof(*g_PrimitivesToDrawUnknown),
+                                  &g_PrimitivesToDrawUnknown[0].textureUV);
+        this->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*g_PrimitivesToDrawUnknown),
+                                  &g_PrimitivesToDrawUnknown[0].diffuse);
 
-    //     //        if (this->currentTextureHandle != this->textures[vm->sprite->sourceFileIndex].handle)
-    //     //        {
-    //     //            this->currentTexture = this->textures[vm->sprite->sourceFileIndex];
-    //     //            g_Supervisor.d3dDevice->SetTexture(0, this->currentTexture);
-    //     //        }
+        //        g_Supervisor.d3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, , 0x18);
 
-    //     this->SetCurrentTexture(this->textures[vm->sprite->sourceFileIndex].handle);
+        g_GfxBackend->SetRhw(false);
+        this->BackendDrawCall();
 
-    //     if (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0)
-    //     {
-    //         this->SetVertexAttributes(VERTEX_ATTR_TEX_COORD);
-    //     }
-    //     else
-    //     {
-    //         this->SetVertexAttributes(VERTEX_ATTR_TEX_COORD | VERTEX_ATTR_DIFFUSE);
-    //     }
-    // }
+        this->SetTransformMatrix(MATRIX_VIEW, originalView);
+    }
 
-    // this->SetRenderStateForVm(vm);
-
-    // if ((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF & 1) == 0)
-    // {
-    //     this->AddSpriteToDrawBuffer(g_PrimitivesToDrawVertexBuf);
-    // }
-    // else
-    // {
-    //     this->SetAttributePointer(VERTEX_ARRAY_POSITION, sizeof(*g_PrimitivesToDrawUnknown),
-    //                               &g_PrimitivesToDrawUnknown[0].position);
-    //     this->SetAttributePointer(VERTEX_ARRAY_TEX_COORD, sizeof(*g_PrimitivesToDrawUnknown),
-    //                               &g_PrimitivesToDrawUnknown[0].textureUV);
-    //     this->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*g_PrimitivesToDrawUnknown),
-    //                               &g_PrimitivesToDrawUnknown[0].diffuse);
-
-    //     //        g_Supervisor.d3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, , 0x18);
-
-    //     g_GfxBackend->SetRhw(false);
-    //     this->BackendDrawCall();
-
-    //     this->SetTransformMatrix(MATRIX_VIEW, originalView);
-    // }
-
-    // return ZUN_SUCCESS;
+    return ZUN_SUCCESS;
 }
 
 #define AnmF32Arg(index) (*(LE<f32> *)&curInstr->args[index])

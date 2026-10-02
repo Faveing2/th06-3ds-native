@@ -825,6 +825,17 @@ void GfxCitro3d::SetRhw(bool enable){
     this->useRhw = enable;
 }
 
+void printMatrix(const C3D_Mtx* mtx) {
+    for (int i = 0; i < 4; i++) {
+        printf("[ %0.1f  %0.1f  %0.1f  %0.1f ]\n", 
+               mtx->r[i].x, 
+               mtx->r[i].y, 
+               mtx->r[i].z, 
+               mtx->r[i].w);
+    }
+    printf("\n");
+}
+
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
 
@@ -889,15 +900,15 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     case GPU_TRIANGLE_STRIP:
         if(this->useRhw && this->useTexCoord){
             for(int i = 0; i <= count; i++){
-                    C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,1.0f);
+                    C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,stripVerticesrhw[i].position.w);
                     C3D_ImmSendAttrib(stripVerticesrhw[i].textureUV.x,1.0f-stripVerticesrhw[i].textureUV.y,1.0f,1.0f);
                     C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
             }
         }else if(this-useRhw && !this->useTexCoord){
             for(int i = 0; i <= count; i++){
-                    // C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,1.0f);
-                    // C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-                    // C3D_ImmSendAttrib(stripVerticesrhw[i].diffuse.r,stripVerticesrhw[i].diffuse.g,stripVerticesrhw[i].diffuse.b,stripVerticesrhw[i].diffuse.a);
+                    C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,stripVerticesrhw[i].position.w);
+                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+                    C3D_ImmSendAttrib(stripVerticesrhw[i].diffuse.r,stripVerticesrhw[i].diffuse.g,stripVerticesrhw[i].diffuse.b,stripVerticesrhw[i].diffuse.a);
             }
         }else if(!this->useRhw && this->useTexCoord){
             for(int i = 0; i <= count; i++){
@@ -907,9 +918,9 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
             }
         }else if(!this->useRhw && !this->useTexCoord){
             for(int i = 0; i <= count; i++){
-                    // C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
-                    // C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-                    // C3D_ImmSendAttrib(stripVertices[i].diffuse.r,stripVertices[i].diffuse.g,stripVertices[i].diffuse.b,stripVertices[i].diffuse.a);
+                    C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
+                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
+                    C3D_ImmSendAttrib(stripVertices[i].diffuse.r,stripVertices[i].diffuse.g,stripVertices[i].diffuse.b,stripVertices[i].diffuse.a);
             }
         }
         break;
@@ -929,9 +940,12 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         //         C3D_ImmSendAttrib(vertexdiffuseXyzrhw[i].diffuse.r,vertexdiffuseXyzrhw[i].diffuse.g,vertexdiffuseXyzrhw[i].diffuse.b,vertexdiffuseXyzrhw[i].diffuse.a);
         //     }
         // }
+            // printf("Projection Matr\n");
+            // printMatrix(&this->projectionMatrix);
+            // printf("Vertex (%f,%f,%f)\n",stripVertices[0].position.x,stripVertices[0].position.y,stripVertices[0].position.z);
             for (int i = 0; i < count; i++)
             {
-                C3D_ImmSendAttrib(triangleVertices[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,1.0f);
+                C3D_ImmSendAttrib(triangleVertices[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,triangleVertices[i].position.w);
                 C3D_ImmSendAttrib(triangleVertices[i].textureUV.x,1.0f-triangleVertices[i].textureUV.y,1.0f,1.0f);
                 C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
             }
