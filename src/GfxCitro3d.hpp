@@ -127,6 +127,11 @@ struct GfxCitro3d : GfxInterface
         C3D_Mtx scaleMatrix;
         C3D_Mtx rotationMatrix;
 
+        f32 targetY = 0.0f;
+        f32 targetX = 0.0f;
+        f32 screenW = 0.0f;
+        f32 screenH = 0.0f;
+
         void *vertexBuffer;
         std::size_t vertexCapacity;
 };

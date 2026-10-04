@@ -345,10 +345,15 @@ void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){
     // const f32 targetX = 240.0f - (screenY + screenH);
     // const f32 targetY = screenX;
 
-    const f32 targetX = screenY;
-    const f32 targetY = 400.0f - (screenX + screenW);
+    // const f32 targetX = screenY;
+    // const f32 targetY = 400.0f - (screenX + screenW);
 
-    C3D_SetViewport(targetX,targetY,screenH,screenW);
+    // C3D_SetViewport(targetX,targetY,screenH,screenW);
+
+    this->targetX = screenY;
+    this->targetY = 400.0f - (screenX + screenW);
+    this->screenH = screenH;
+    this->screenW = screenW;
 
     // const f32 offsetX = (400.0f - (640.0f * scalex)) * 0.5f;
     
@@ -897,6 +902,8 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         C3D_FrameDrawOn(this->target);
         this->first_draw = false;
     }
+
+    C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
 
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrix);
 
