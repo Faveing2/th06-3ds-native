@@ -975,7 +975,7 @@ void Player::DrawBulletExplosions(Player *p)
             bullets->sprite.rotation.z = ZUN_PI / 2 - utils::AddNormalizeAngle(bullets->unk_134.z, ZUN_PI);
         }
         bullets->sprite.pos.z = 0.4f;
-        g_AnmManager->Draw(&bullets->sprite);
+        g_AnmManager->Draw2(&bullets->sprite);
     }
 }
 
