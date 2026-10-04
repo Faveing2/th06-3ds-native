@@ -1013,18 +1013,9 @@ ZunResult AnmManager::AddSpriteToDrawBuffer(VertexTex1Xyzrhw *vertices)
 
 ZunResult AnmManager::DrawNoRotation(const AnmVm *vm)
 {
-    f32 zSine;
-    f32 zCosine;
-    f32 spriteXCenter;
-    f32 spriteYCenter;
-    f32 xOffset;
-    f32 yOffset;
-    f32 z;
+    float fVar2;
+    float fVar3;
 
-    if (vm->rotation.z == 0.0f)
-    {
-        return this->DrawNoRotation(vm);
-    }
     if (vm->flags.isVisible == 0)
     {
         return ZUN_ERROR;
@@ -1037,84 +1028,31 @@ ZunResult AnmManager::DrawNoRotation(const AnmVm *vm)
     {
         return ZUN_ERROR;
     }
-    z = vm->rotation.z;
-    fsincos_wrapper(&zSine, &zCosine, 0);
-    xOffset = rintf(vm->pos.x);
-    yOffset = rintf(vm->pos.y);
-    spriteXCenter = rintf((vm->sprite->widthPx * vm->scaleX) / 2.0f);
-    spriteYCenter = rintf((vm->sprite->heightPx * vm->scaleY) / 2.0f);
-    this->TranslateRotation(&g_PrimitivesToDrawVertexBuf[0], -spriteXCenter - 0.5f, -spriteYCenter - 0.5f, zSine,
-                            zCosine, xOffset, yOffset);
-    this->TranslateRotation(&g_PrimitivesToDrawVertexBuf[1], spriteXCenter - 0.5f, -spriteYCenter - 0.5f, zSine,
-                            zCosine, xOffset, yOffset);
-    this->TranslateRotation(&g_PrimitivesToDrawVertexBuf[2], -spriteXCenter - 0.5f, spriteYCenter - 0.5f, zSine,
-                            zCosine, xOffset, yOffset);
-    this->TranslateRotation(&g_PrimitivesToDrawVertexBuf[3], spriteXCenter - 0.5f, spriteYCenter - 0.5f, zSine, zCosine,
-                            xOffset, yOffset);
-    g_PrimitivesToDrawVertexBuf[0].position.z = g_PrimitivesToDrawVertexBuf[1].position.z =
-        g_PrimitivesToDrawVertexBuf[2].position.z = g_PrimitivesToDrawVertexBuf[3].position.z = vm->pos.z;
-    if ((vm->flags.anchor & AnmVmAnchor_Left) != 0)
+    fVar2 = (vm->sprite->widthPx * vm->scaleX) / 2.0f;
+    fVar3 = (vm->sprite->heightPx * vm->scaleY) / 2.0f;
+    if ((vm->flags.anchor & AnmVmAnchor_Left) == 0)
     {
-        g_PrimitivesToDrawVertexBuf[0].position.x += spriteXCenter;
-        g_PrimitivesToDrawVertexBuf[1].position.x += spriteXCenter;
-        g_PrimitivesToDrawVertexBuf[2].position.x += spriteXCenter;
-        g_PrimitivesToDrawVertexBuf[3].position.x += spriteXCenter;
+        g_PrimitivesToDrawVertexBuf[0].position.x = g_PrimitivesToDrawVertexBuf[2].position.x = vm->pos.x - fVar2;
+        g_PrimitivesToDrawVertexBuf[1].position.x = g_PrimitivesToDrawVertexBuf[3].position.x = fVar2 + vm->pos.x;
     }
-    if ((vm->flags.anchor & AnmVmAnchor_Top) != 0)
+    else
     {
-        g_PrimitivesToDrawVertexBuf[0].position.y += spriteYCenter;
-        g_PrimitivesToDrawVertexBuf[1].position.y += spriteYCenter;
-        g_PrimitivesToDrawVertexBuf[2].position.y += spriteYCenter;
-        g_PrimitivesToDrawVertexBuf[3].position.y += spriteYCenter;
+        g_PrimitivesToDrawVertexBuf[0].position.x = g_PrimitivesToDrawVertexBuf[2].position.x = vm->pos.x;
+        g_PrimitivesToDrawVertexBuf[1].position.x = g_PrimitivesToDrawVertexBuf[3].position.x =
+            fVar2 + vm->pos.x + fVar2;
     }
-    return this->DrawOrthographic(vm, false);
-
-    // float fVar2;
-    // float fVar3;
-
-    // if (vm->flags.isVisible == 0)
-    // {
-    //     return ZUN_ERROR;
-    // }
-    // if (vm->flags.flag1 == 0)
-    // {
-    //     return ZUN_ERROR;
-    // }
-    // if (vm->color == 0)
-    // {
-    //     return ZUN_ERROR;
-    // }
-
-    // fVar2 = (vm->sprite->widthPx * vm->scaleX) / 2.0f;
-    // fVar3 = (vm->sprite->heightPx * vm->scaleY) / 2.0f;
-
-    // // fVar2 = 0;
-    // // fVar3 = 0;
-    // if ((vm->flags.anchor & AnmVmAnchor_Left) == 0)
-    // {
-    //     // g_PrimitivesToDrawVertexBuf[0].position.x = g_PrimitivesToDrawVertexBuf[2].position.x = vm->pos.x - fVar2;
-    //     // g_PrimitivesToDrawVertexBuf[1].position.x = g_PrimitivesToDrawVertexBuf[3].position.x = fVar2 + vm->pos.x;
-    //     g_PrimitivesToDrawVertexBuf[0].position.x = g_PrimitivesToDrawVertexBuf[2].position.x = vm->pos.x - fVar2;
-    //     g_PrimitivesToDrawVertexBuf[1].position.x = g_PrimitivesToDrawVertexBuf[3].position.x = fVar2 + vm->pos.x;
-    // }
-    // else
-    // {
-    //     g_PrimitivesToDrawVertexBuf[0].position.x = g_PrimitivesToDrawVertexBuf[2].position.x = vm->pos.x;
-    //     g_PrimitivesToDrawVertexBuf[1].position.x = g_PrimitivesToDrawVertexBuf[3].position.x =
-    //         fVar2 + vm->pos.x + fVar2;
-    // }
-    // if ((vm->flags.anchor & AnmVmAnchor_Top) == 0)
-    // {
-    //     g_PrimitivesToDrawVertexBuf[0].position.y = g_PrimitivesToDrawVertexBuf[1].position.y = vm->pos.y - fVar3;
-    //     g_PrimitivesToDrawVertexBuf[2].position.y = g_PrimitivesToDrawVertexBuf[3].position.y = fVar3 + vm->pos.y;
-    // }
-    // else
-    // {
-    //     g_PrimitivesToDrawVertexBuf[0].position.y = g_PrimitivesToDrawVertexBuf[1].position.y = vm->pos.y;
-    //     g_PrimitivesToDrawVertexBuf[2].position.y = g_PrimitivesToDrawVertexBuf[3].position.y =
-    //         fVar3 + vm->pos.y + fVar3;
-    // }
-    // return this->DrawOrthographic(vm, true);
+    if ((vm->flags.anchor & AnmVmAnchor_Top) == 0)
+    {
+        g_PrimitivesToDrawVertexBuf[0].position.y = g_PrimitivesToDrawVertexBuf[1].position.y = vm->pos.y - fVar3;
+        g_PrimitivesToDrawVertexBuf[2].position.y = g_PrimitivesToDrawVertexBuf[3].position.y = fVar3 + vm->pos.y;
+    }
+    else
+    {
+        g_PrimitivesToDrawVertexBuf[0].position.y = g_PrimitivesToDrawVertexBuf[1].position.y = vm->pos.y;
+        g_PrimitivesToDrawVertexBuf[2].position.y = g_PrimitivesToDrawVertexBuf[3].position.y =
+            fVar3 + vm->pos.y + fVar3;
+    }
+    return this->DrawOrthographic(vm, true);
 }
 
 void AnmManager::TranslateRotation(VertexTex1Xyzrhw *param_1, f32 x, f32 y, f32 sine, f32 cosine, f32 xOffset,

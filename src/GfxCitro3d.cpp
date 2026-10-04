@@ -47,8 +47,8 @@ GfxInterface *GfxCitro3d::Init(){
 
     GfxCitro3d *self = new GfxCitro3d;
 
-    //gfxInitDefault();
-    gfxInit(GSP_BGR8_OES, GSP_BGR8_OES, false);
+    gfxInitDefault();
+
     // Increased the CMD buffer size
     C3D_Init(0x100000);
 
@@ -261,6 +261,10 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             this->modelViewMatrix.r[i].y = matrix.m[1][i];
             this->modelViewMatrix.r[i].z = matrix.m[2][i];
             this->modelViewMatrix.r[i].w = matrix.m[3][i];
+            // this->modelViewMatrix.r[i].x = matrix.m[i][0];
+            // this->modelViewMatrix.r[i].y = matrix.m[i][1];
+            // this->modelViewMatrix.r[i].z = matrix.m[i][2];
+            // this->modelViewMatrix.r[i].w = matrix.m[i][3];
         }
         break;
     case MATRIX_VIEW:
@@ -270,6 +274,10 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             this->modelViewMatrix.r[i].y = matrix.m[1][i];
             this->modelViewMatrix.r[i].z = matrix.m[2][i];
             this->modelViewMatrix.r[i].w = matrix.m[3][i];
+            // this->modelViewMatrix.r[i].x = matrix.m[i][0];
+            // this->modelViewMatrix.r[i].y = matrix.m[i][1];
+            // this->modelViewMatrix.r[i].z = matrix.m[i][2];
+            // this->modelViewMatrix.r[i].w = matrix.m[i][3];
         }
         break;
     case MATRIX_PROJECTION:
@@ -293,6 +301,11 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             this->textureMatrixMatrix.r[i].y = matrix.m[1][i];
             this->textureMatrixMatrix.r[i].z = matrix.m[2][i];
             this->textureMatrixMatrix.r[i].w = matrix.m[3][i];
+
+            // this->textureMatrixMatrix.r[i].x = matrix.m[i][0];
+            // this->textureMatrixMatrix.r[i].y = matrix.m[i][1];
+            // this->textureMatrixMatrix.r[i].z = matrix.m[i][2];
+            // this->textureMatrixMatrix.r[i].w = matrix.m[i][3];
         }
         break;
     }
@@ -359,6 +372,9 @@ void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){
 void GfxCitro3d::SetDepthRange(f32 nearPlane, f32 farPlane){
     depthNear3ds = nearPlane;
     depthFar3ds = farPlane;
+
+    //C3D_DepthMap(true, nearPlane, farPlane);
+    C3D_DepthMap(true, -1.0, 1);
 }
 
 void GfxCitro3d::Enable(Capabilities cap){
@@ -374,11 +390,18 @@ void GfxCitro3d::SetBlendMode(BlendMode mode){
 }
 
 void GfxCitro3d::SetDepthMask(bool enable){
-    
 }
 
 void GfxCitro3d::SetDepthFunc(DepthFunc func){
-    
+    switch (func)
+    {
+    case DEPTH_FUNC_LEQUAL:
+        C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+        break;
+    case DEPTH_FUNC_ALWAYS:
+        C3D_DepthTest(true, GPU_ALWAYS, GPU_WRITE_ALL);
+        break;
+    }
 }
 
 void GfxCitro3d::SetClearDepth(f32 depth){

@@ -558,10 +558,6 @@ inline ZunMatrix perspectiveMatrixFromFOV(f32 verticalFOV, f32 aspectRatio, f32 
     // This should be uncommented if pixel off-by-one errors show up
     // g_glFuncTable.glTranslatef(0.5f / GAME_WINDOW_WIDTH, 0.5f / GAME_WINDOW_HEIGHT, 0.0f);
 
-    f32 vertical = ZUN_TANF(verticalFOV / 2) * nearPlane;
-    f32 horizontal = vertical * aspectRatio;
-    f32 zScale = (farPlane + nearPlane) / (farPlane - nearPlane);
-
     ZunMatrix perspectiveMatrix;
     C3D_Mtx picoPerspectiveMatrix;
     
@@ -571,23 +567,23 @@ inline ZunMatrix perspectiveMatrixFromFOV(f32 verticalFOV, f32 aspectRatio, f32 
     Mtx_Persp(&picoPerspectiveMatrix, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, true);
 
     perspectiveMatrix.m[0][0] = picoPerspectiveMatrix.r[0].x;
-    perspectiveMatrix.m[1][0] = picoPerspectiveMatrix.r[0].y;
-    perspectiveMatrix.m[2][0] = picoPerspectiveMatrix.r[0].z;
-    perspectiveMatrix.m[3][0] = picoPerspectiveMatrix.r[0].w;
-
     perspectiveMatrix.m[0][1] = picoPerspectiveMatrix.r[1].x;
-    perspectiveMatrix.m[1][1] = picoPerspectiveMatrix.r[1].y;
-    perspectiveMatrix.m[2][1] = picoPerspectiveMatrix.r[1].z;
-    perspectiveMatrix.m[3][1] = picoPerspectiveMatrix.r[1].w;
-
     perspectiveMatrix.m[0][2] = picoPerspectiveMatrix.r[2].x;
-    perspectiveMatrix.m[1][2] = picoPerspectiveMatrix.r[2].y;
-    perspectiveMatrix.m[2][2] = picoPerspectiveMatrix.r[2].z;
-    perspectiveMatrix.m[3][2] = picoPerspectiveMatrix.r[2].w;
-
     perspectiveMatrix.m[0][3] = picoPerspectiveMatrix.r[3].x;
+
+    perspectiveMatrix.m[1][0] = picoPerspectiveMatrix.r[0].y;
+    perspectiveMatrix.m[1][1] = picoPerspectiveMatrix.r[1].y;
+    perspectiveMatrix.m[1][2] = picoPerspectiveMatrix.r[2].y;
     perspectiveMatrix.m[1][3] = picoPerspectiveMatrix.r[3].y;
+
+    perspectiveMatrix.m[2][0] = picoPerspectiveMatrix.r[0].z;
+    perspectiveMatrix.m[2][1] = picoPerspectiveMatrix.r[1].z;
+    perspectiveMatrix.m[2][2] = picoPerspectiveMatrix.r[2].z;
     perspectiveMatrix.m[2][3] = picoPerspectiveMatrix.r[3].z;
+
+    perspectiveMatrix.m[3][0] = picoPerspectiveMatrix.r[0].w;
+    perspectiveMatrix.m[3][1] = picoPerspectiveMatrix.r[1].w;
+    perspectiveMatrix.m[3][2] = picoPerspectiveMatrix.r[2].w;
     perspectiveMatrix.m[3][3] = picoPerspectiveMatrix.r[3].w;
 
     return perspectiveMatrix;
@@ -608,8 +604,10 @@ inline void projectVec3(ZunVec3 &out, const ZunVec3 &inVec, const ZunViewport &v
 
     clipVector /= wVal;
 
+    // Could be another source of issues since the pica200 clip space is different from openGL, it's [-1,0] not [-1,1]
+    // Gonna attempt to see a converting it fixes some things.
     // OpenGL clip space and window coordinates differ from D3D's, so we have to invert Y here
-    out.x = mapRange(clipVector.x, -1.0f, 1.0f, viewport.x, viewport.x + viewport.width);
-    out.y = mapRange(clipVector.y, -1.0f, 1.0f, viewport.y + viewport.height, viewport.y);
-    out.z = mapRange(clipVector.z, -1.0f, 1.0f, viewport.minZ, viewport.maxZ);
+    out.x = mapRange(clipVector.x, -1.0f, 0.0f, viewport.x, viewport.x + viewport.width);
+    out.y = mapRange(clipVector.y, -1.0f, 0.0f, viewport.y + viewport.height, viewport.y);
+    out.z = mapRange(clipVector.z, -1.0f, 0.0f, viewport.minZ, viewport.maxZ);
 }

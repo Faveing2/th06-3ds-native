@@ -407,6 +407,40 @@ u16 GetButtons_3DS()
     if (held & KEY_Y)
         buttons |= TH_BUTTON_S;
 
+    circlePosition circle;
+    hidCircleRead(&circle);
+
+    constexpr int DEADZONE = 40;
+
+    bool up    = circle.dy > DEADZONE;
+    bool down  = circle.dy < -DEADZONE;
+    bool left  = circle.dx < -DEADZONE;
+    bool right = circle.dx > DEADZONE;
+
+    if (up && left)
+        buttons |= TH_BUTTON_UP_LEFT;
+    
+    if (up && right)
+        buttons |= TH_BUTTON_UP_RIGHT;
+
+    if (down && left)
+        buttons |= TH_BUTTON_DOWN_LEFT;
+    
+    if (down && right)
+        buttons |= TH_BUTTON_DOWN_RIGHT;
+    
+    if (up)
+      buttons |= TH_BUTTON_UP;   
+
+    if (down)
+        buttons |= TH_BUTTON_DOWN;
+    
+    if (left)
+        buttons |= TH_BUTTON_LEFT;
+    
+    if (right)
+        buttons |= TH_BUTTON_RIGHT;
+
     return buttons;
 }
 
