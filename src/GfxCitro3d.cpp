@@ -379,7 +379,9 @@ void GfxCitro3d::SetDepthRange(f32 nearPlane, f32 farPlane){
     depthFar3ds = farPlane;
 
     //C3D_DepthMap(true, nearPlane, farPlane);
-    C3D_DepthMap(true, -1.0, 1);
+
+    // This works and I'm not exactly sure why
+    C3D_DepthMap(true, -1.0, 1.0);
 }
 
 void GfxCitro3d::Enable(Capabilities cap){
@@ -395,6 +397,11 @@ void GfxCitro3d::SetBlendMode(BlendMode mode){
 }
 
 void GfxCitro3d::SetDepthMask(bool enable){
+    // if(enable){
+    //     C3D_DepthTest(true, GPU_GREATER, GPU_WRITE_ALL); 
+    // }else{
+    //     C3D_DepthTest(true, GPU_GREATER, GPU_WRITE_COLOR); 
+    // }
 }
 
 void GfxCitro3d::SetDepthFunc(DepthFunc func){
@@ -415,7 +422,7 @@ void GfxCitro3d::SetClearDepth(f32 depth){
     if (depth > 1.0f)
         depth = 1.0f;
 
-    this->C3D_cleardepth = (u32)(depth * 0xFFFFFFu + 0.5f);
+    this->C3D_cleardepth = (u32)(depth * 0xFFFFFF);
 }
 
 static u8 FloatToColorByte(f32 value)

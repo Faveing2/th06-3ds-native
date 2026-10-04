@@ -607,7 +607,9 @@ inline void projectVec3(ZunVec3 &out, const ZunVec3 &inVec, const ZunViewport &v
     // Could be another source of issues since the pica200 clip space is different from openGL, it's [-1,0] not [-1,1]
     // Gonna attempt to see a converting it fixes some things.
     // OpenGL clip space and window coordinates differ from D3D's, so we have to invert Y here
-    out.x = mapRange(clipVector.x, -1.0f, 0.0f, viewport.x, viewport.x + viewport.width);
-    out.y = mapRange(clipVector.y, -1.0f, 0.0f, viewport.y + viewport.height, viewport.y);
+
+    // Going to change the ranges on these clip vectors to the PICA200 ranges
+    out.x = mapRange(clipVector.x, -1.0f, 1.0f, viewport.x, viewport.x + viewport.width);
+    out.y = mapRange(clipVector.y, -1.0f, 1.0f, viewport.y + viewport.height, viewport.y);
     out.z = mapRange(clipVector.z, -1.0f, 0.0f, viewport.minZ, viewport.maxZ);
 }
