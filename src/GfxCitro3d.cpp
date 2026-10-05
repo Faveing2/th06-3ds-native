@@ -22,6 +22,9 @@
 
 #define CLEAR_COLOR 0x68B0D8FF
 
+// Defines a fixed sized vertex buffer. Surely 20000 verticies will be enough :)
+#define MAX_VERTICES 20000
+
 static void* vbo_data;
 static PrintConsole bottomScreen;
 
@@ -177,6 +180,12 @@ GfxInterface *GfxCitro3d::Init(){
 	// C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
 	// C3D_FogColor(0xD8B068);
 	// C3D_FogLutBind(&fog_Lut);
+
+    self->vertexBuffer = static_cast<Vertex3DS*>(linearAlloc(MAX_VERTICES * sizeof(Vertex3DS)));
+
+    self->vertexBufferInfo = C3D_GetBufInfo();
+	BufInfo_Init(self->vertexBufferInfo);
+	BufInfo_Add(self->vertexBufferInfo , self->vertexBuffer, sizeof(Vertex3DS), 3, 0x210);
 
     return self;
 }   
@@ -820,6 +829,7 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
 
         C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
         C3D_TexFlush(&this->boundTexture3ds->texObject);
+
     }
 }
 
@@ -855,6 +865,7 @@ void GfxCitro3d::ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pix
 
 void GfxCitro3d::SwapBuffers(){
     this->first_draw = true;
+    this->vertexWriteOffset = 0;
     C3D_FrameEnd(0);
 }
 
@@ -907,6 +918,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
         C3D_FrameDrawOn(this->target);
         this->first_draw = false;
+        this->vertexWriteOffset = 0;
     }
 
     C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
@@ -917,57 +929,48 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
 
-    C3D_ImmDrawBegin(C3DPrim);
+    u32 firstVertex = this->vertexWriteOffset;
+
     switch(C3DPrim)
     {
     case GPU_TRIANGLE_STRIP:
         if(!this->useRhw & this->useTexCoord){
-            for(int i = 0; i <= count; i++){
-                    C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
-                    C3D_ImmSendAttrib(stripVertices[i].textureUV.x,1.0f-stripVertices[i].textureUV.y,1.0f,1.0f);
-                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-            }
+            for (int i = 0; i < count; i++)
+            {
+                this->vertexBuffer[firstVertex+i].x = stripVertices[i].position.x;
+                this->vertexBuffer[firstVertex+i].y = stripVertices[i].position.y;
+                this->vertexBuffer[firstVertex+i].z = stripVertices[i].position.z;
+
+                this->vertexBuffer[firstVertex+i].u = stripVertices[i].textureUV.x;
+                this->vertexBuffer[firstVertex+i].v = 1.0f-stripVertices[i].textureUV.y;
+
+                this->vertexBuffer[firstVertex+i].r = 256;
+                this->vertexBuffer[firstVertex+i].g = 255;
+                this->vertexBuffer[firstVertex+i].b = 255;
+                this->vertexBuffer[firstVertex+i].a = 255;
+            }  
+            this->vertexWriteOffset += count;
+            C3D_DrawArrays(C3DPrim, firstVertex, count); 
         }
         break;
     case GPU_TRIANGLES:
-            for (int i = 0; i < count; i++)
-            {
-                C3D_ImmSendAttrib(triangleVertices[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,triangleVertices[i].position.w);
-                C3D_ImmSendAttrib(triangleVertices[i].textureUV.x,1.0f-triangleVertices[i].textureUV.y,1.0f,1.0f);
-                C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-            }
+        for (int i = 0; i < count; i++)
+        {
+            this->vertexBuffer[firstVertex+i].x = triangleVertices[i].position.x;
+            this->vertexBuffer[firstVertex+i].y = triangleVertices[i].position.y;
+            this->vertexBuffer[firstVertex+i].z = triangleVertices[i].position.z;
+
+            this->vertexBuffer[firstVertex+i].u = triangleVertices[i].textureUV.x;
+            this->vertexBuffer[firstVertex+i].v = 1.0f-triangleVertices[i].textureUV.y;
+
+            this->vertexBuffer[firstVertex+i].r = 255;
+            this->vertexBuffer[firstVertex+i].g = 255;
+            this->vertexBuffer[firstVertex+i].b = 255;
+            this->vertexBuffer[firstVertex+i].a = 255;
+        }
+        this->vertexWriteOffset += count;
+        C3D_DrawArrays(C3DPrim, firstVertex, count);
         break;
     }
-
-    // For rn I'll use Imm mode however this is fills up the C3D cmd buffer really fast, will be better to use proper buffers instead later
-    // C3D_ImmDrawBegin(C3DPrim);
-    // for (int i = 0; i < count; i++)
-    // {
-    //     printf("TEst %f", vertices[i].position.x);
-    //     switch(C3DPrim){
-    //         case GPU_TRIANGLES:
-    //             if (!ValidFloat(vertexDataFloat[i * 6 + 0]) || !ValidFloat(vertexDataFloat[i * 6 + 1]) || !ValidFloat(vertexDataFloat[i * 6 + 2]) || !ValidFloat(vertexDataFloat[i * 6 + 4]) || !ValidFloat(vertexDataFloat[i * 6 + 5])){
-    //                 printf("BAD VERTEX");
-    //                 C3D_ImmDrawEnd();
-    //                 return;
-    //             }
-    //             C3D_ImmSendAttrib(vertexDataFloat[i * 6 + 0], vertexDataFloat[i * 6 + 1], vertexDataFloat[i * 6 + 2], 1.0f);
-    //             C3D_ImmSendAttrib(vertexDataFloat[i * 6 + 4], 1.0f - vertexDataFloat[i * 6 + 5], 1.0f, 1.0f);
-    //         break;
-    //         case GPU_TRIANGLE_STRIP:
-    //                 if (!ValidFloat(vertexDataFloat[i * 10 + 0]) || !ValidFloat(vertexDataFloat[i * 10 + 1]) || !ValidFloat(vertexDataFloat[i * 10 + 2]) || !ValidFloat(vertexDataFloat[i * 10 + 8]) || !ValidFloat(vertexDataFloat[i * 10 + 9])){
-    //                 printf("Bad Vertex = (%f,%f,%f,%f,%f,%f,%f,%f,%f,%f)", vertexDataFloat[i * 10 + 0], vertexDataFloat[i * 10 + 1], vertexDataFloat[i * 10 + 2],vertexDataFloat[i * 10 + 3], vertexDataFloat[i * 10 + 4], vertexDataFloat[i * 10 + 5], vertexDataFloat[i * 10 + 6], vertexDataFloat[i * 10 + 7], vertexDataFloat[i * 10 + 8], vertexDataFloat[i * 10 + 9]);
-    //                 C3D_ImmDrawEnd();
-    //                 return;
-    //             }
-    //             C3D_ImmSendAttrib(vertexDataFloat[i * 10 + 0], vertexDataFloat[i * 10 + 1], vertexDataFloat[i * 10 + 2], 1.0f);
-    //             C3D_ImmSendAttrib(vertexDataFloat[i * 10 + 8], vertexDataFloat[i * 10 + 9], 1.0f, 1.0f);
-    //         break;
-    //     }
-    //     // C3D_ImmSendAttrib(vertexDataFloat[i * 6 + 0], vertexDataFloat[i * 6 + 1], vertexDataFloat[i * 6 + 2], 1.0f);
-    //     // // V cord must be inversed (Not exactly sure why it just works)
-    //     // C3D_ImmSendAttrib(vertexDataFloat[i * 6 + 4], 1.0f - vertexDataFloat[i * 6 + 5], 1.0f, 1.0f);
-    // }
-    C3D_ImmDrawEnd();
 }
 

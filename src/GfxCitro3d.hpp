@@ -9,6 +9,13 @@
 #include <tex3ds.h>
 #include <stdio.h>
 
+struct Vertex3DS
+{
+    f32 x, y, z;
+    f32 u, v;
+    u8 r,g,b,a;
+};
+
 struct Texture3ds
 {
     std::vector<u32> texels; // ARGB8888 Not using this rn
@@ -117,6 +124,11 @@ struct GfxCitro3d : GfxInterface
         float* vbo_data_texPos;
         u8*    vbo_data_diffuse;
 
+        Vertex3DS* vertexBuffer;
+        C3D_BufInfo* vertexBufferInfo; 
+
+        u32 vertexWriteOffset;
+
         C3D_Mtx modelMatrix;
         C3D_Mtx viewMatrix;
         C3D_Mtx modelViewMatrix;;
@@ -132,6 +144,5 @@ struct GfxCitro3d : GfxInterface
         f32 screenW = 0.0f;
         f32 screenH = 0.0f;
 
-        void *vertexBuffer;
         std::size_t vertexCapacity;
 };
