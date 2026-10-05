@@ -191,7 +191,7 @@ void GfxCitro3d::SetFogRange(f32 nearPlane, f32 farplane){
 }
 
 void GfxCitro3d::SetFogColor(ZunColor color){
-    // Implement later
+    //C3D_FogColor(u32 color);
 }
 
 void GfxCitro3d::ToggleVertexAttribute(u8 attr, bool enable){
@@ -293,6 +293,13 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             // this->projectionMatrix.r[i].z = matrix.m[i][2];
             // this->projectionMatrix.r[i].w = matrix.m[i][3];
         }
+
+        //Rotate the projectino by 90 degrees
+        Mtx_Multiply(
+            &this->correctedMatrix,
+            &this->correctionMatrix,
+            &this->projectionMatrix
+        );
         break;
     case MATRIX_TEXTURE:
         for (int i = 0; i < 4; i++)
@@ -874,22 +881,16 @@ void printMatrix(const C3D_Mtx* mtx) {
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
 
-    Mtx_Multiply(
-        &this->correctedMatrix,
-        &this->correctionMatrix,
-        &this->projectionMatrix
-    );
-
     GPU_Primitive_t C3DPrim;
 
-    const VertexDiffuseXyzrhw* vertexdiffuseXyzrhw = nullptr; // This type never actually gets sent think?
+    //const VertexDiffuseXyzrhw* vertexdiffuseXyzrhw = nullptr; // This type never actually gets sent think?
     const VertexTex1Xyzrhw* triangleVertices = nullptr; 
-    const VertexTex1DiffuseXyzrhw* stripVerticesrhw = nullptr;
+    //const VertexTex1DiffuseXyzrhw* stripVerticesrhw = nullptr;
     const VertexTex1DiffuseXyz* stripVertices = nullptr;
 
-    vertexdiffuseXyzrhw = static_cast<const VertexDiffuseXyzrhw*>(vertexData);
+    //vertexdiffuseXyzrhw = static_cast<const VertexDiffuseXyzrhw*>(vertexData);
     triangleVertices = static_cast<const VertexTex1Xyzrhw*>(vertexData);
-    stripVerticesrhw = static_cast<const VertexTex1DiffuseXyzrhw*>(vertexData);
+    //stripVerticesrhw = static_cast<const VertexTex1DiffuseXyzrhw*>(vertexData);
     stripVertices = static_cast<const VertexTex1DiffuseXyz*>(vertexData);
 
     switch(type)
@@ -903,9 +904,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     }
 
     if(this->first_draw){
-        //utils::DebugPrint("First draw");
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-        //C3D_RenderTargetClear(this->target, C3D_CLEAR_ALL, this->C3D_clearcolor, 0);
         C3D_FrameDrawOn(this->target);
         this->first_draw = false;
     }
@@ -918,68 +917,19 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
 
-    //const float* vertexDataFloat = static_cast<const float*>(vertexData);
-
-    // switch(C3DPrim){
-    //     case GPU_TRIANGLES:
-    //     const VertexTex1Xyzrhw* vertices = static_cast<const VertexTex1Xyzrhw*>(vertexData);
-    //     break;
-    //     case GPU_TRIANGLE_STRIP:
-    //     const VertexTex1DiffuseXyzrhw* vertices = static_cast<const VertexTex1DiffuseXyzrhw*>(vertexData);
-    //     break;
-    // }
-    // const VertexTex1Xyzrhw* vertices_tri = static_cast<const VertexTex1Xyzrhw*>(vertexData);
-    // const VertexTex1DiffuseXyzrhw* verticies_strip = static_cast<const VertexTex1DiffuseXyzrhw*>(vertexData)
-
     C3D_ImmDrawBegin(C3DPrim);
     switch(C3DPrim)
     {
     case GPU_TRIANGLE_STRIP:
-        if(this->useRhw && this->useTexCoord){
-            for(int i = 0; i <= count; i++){
-                    C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,stripVerticesrhw[i].position.w);
-                    C3D_ImmSendAttrib(stripVerticesrhw[i].textureUV.x,1.0f-stripVerticesrhw[i].textureUV.y,1.0f,1.0f);
-                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-            }
-        }else if(this-useRhw && !this->useTexCoord){
-            for(int i = 0; i <= count; i++){
-                    C3D_ImmSendAttrib(stripVerticesrhw[i].position.x,stripVerticesrhw[i].position.y,stripVerticesrhw[i].position.z,stripVerticesrhw[i].position.w);
-                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-                    C3D_ImmSendAttrib(stripVerticesrhw[i].diffuse.r,stripVerticesrhw[i].diffuse.g,stripVerticesrhw[i].diffuse.b,stripVerticesrhw[i].diffuse.a);
-            }
-        }else if(!this->useRhw && this->useTexCoord){
+        if(!this->useRhw & this->useTexCoord){
             for(int i = 0; i <= count; i++){
                     C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
                     C3D_ImmSendAttrib(stripVertices[i].textureUV.x,1.0f-stripVertices[i].textureUV.y,1.0f,1.0f);
                     C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
             }
-        }else if(!this->useRhw && !this->useTexCoord){
-            for(int i = 0; i <= count; i++){
-                    C3D_ImmSendAttrib(stripVertices[i].position.x,stripVertices[i].position.y,stripVertices[i].position.z,1.0f);
-                    C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-                    C3D_ImmSendAttrib(stripVertices[i].diffuse.r,stripVertices[i].diffuse.g,stripVertices[i].diffuse.b,stripVertices[i].diffuse.a);
-            }
         }
         break;
     case GPU_TRIANGLES:
-        // if(this->useTexCoord){
-        //     for (int i = 0; i < count; i++)
-        //     {
-        //         C3D_ImmSendAttrib(triangleVertices[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,1.0f);
-        //         C3D_ImmSendAttrib(triangleVertices[i].textureUV.x,1.0f-triangleVertices[i].textureUV.y,1.0f,1.0f);
-        //         C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-        //     }
-        // }else{
-        //     for (int i = 0; i < count; i++)
-        //     {
-        //         C3D_ImmSendAttrib(vertexdiffuseXyzrhw[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,1.0f);
-        //         C3D_ImmSendAttrib(1.0f,1.0f,1.0f,1.0f);
-        //         C3D_ImmSendAttrib(vertexdiffuseXyzrhw[i].diffuse.r,vertexdiffuseXyzrhw[i].diffuse.g,vertexdiffuseXyzrhw[i].diffuse.b,vertexdiffuseXyzrhw[i].diffuse.a);
-        //     }
-        // }
-            // printf("Projection Matr\n");
-            // printMatrix(&this->projectionMatrix);
-            // printf("Vertex (%f,%f,%f)\n",stripVertices[0].position.x,stripVertices[0].position.y,stripVertices[0].position.z);
             for (int i = 0; i < count; i++)
             {
                 C3D_ImmSendAttrib(triangleVertices[i].position.x,triangleVertices[i].position.y,triangleVertices[i].position.z,triangleVertices[i].position.w);
