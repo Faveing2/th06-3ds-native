@@ -62,8 +62,6 @@ GfxInterface *GfxCitro3d::Init(){
     consoleInit(GFX_BOTTOM, &bottomScreen);
     consoleSelect(&bottomScreen);
 
-    printf("gfxCitro3d Initialized");
-
     // Create the vertex shader
     self->shader_dvlb = DVLB_ParseFile((u32*)ff_shbin, ff_shbin_size);
     shaderProgramInit(&self->program);

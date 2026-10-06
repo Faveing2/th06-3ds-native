@@ -244,7 +244,7 @@ ChainCallbackResult Supervisor::OnDraw(Supervisor *s)
     anmm4->currentBlendMode = 0xff;
 
     Supervisor::DrawFpsCounter();
-    Supervisor::DrawBufferUsage();
+    //Supervisor::DrawBufferUsage();
     return CHAIN_CALLBACK_RESULT_CONTINUE;
 }
 
