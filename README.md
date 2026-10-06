@@ -4,17 +4,45 @@ This project was made possible by the amazing work that has been put into the To
 
 # Installing
 
-Create a folder on the root of your SD card called th06, then Legally obtain a copy of Touhou Koumakyou, then copy all the .DAT files to that folder. Also copy the MS gothic font file to th06 and make sure it is named msgothic.ttc, if not then rename it.
+Obtain the following files/folders from a legally obtained copy of Touhou 6 (v1.02) into a folder `th06` on the root of your 3ds sdcard.
+- `bgm/`
+- `紅魔郷CM.DAT`
+- `紅魔郷ED.DAT`
+- `紅魔郷IN.DAT`
+- `紅魔郷MD.DAT`
+- `紅魔郷ST.DAT`
+- `紅魔郷TL.DAT`
+- `msgothic.ttc`
 
-Download the 3dsx file from releases and copy it anywhere onto your sdcard
+# Building
 
-# TODO
+### Dependencies
+- `SDL2`
+- `SDL2_image`
+- `SDL2_ttf`
 
-- [ ] Build a buildscript to aid in installing dependencies and compiling
-- [x] Allow the data files to be loaded from the SDCard rather than included in the romfs, allows the binary to be distributed without distributing the game assets
-- [ ] Graphics rewrite to Citro3d/2d
-- [ ] Wav playback
+Clone the SDL repositories
 
-Code is based on the portable decomp of Touhou 6 https://github.com/GensokyoClub/th06
+`git clone https://github.com/libsdl-org/SDL.git -b SDL2`
 
-Thank you all for your hard work on the decomp
+`git clone https://github.com/libsdl-org/SDL_image.git -b SDL2`
+
+`git clone https://github.com/libsdl-org/SDL_ttf.git -b SDL2`
+
+Run the following in each repository
+```
+cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE="$DEVKITPRO/cmake/3DS.cmake" -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+cmake --install build
+```
+
+Clone this repository and run
+```
+make
+```
+
+# Credits
+
+Code is based on the portable branch of https://github.com/GensokyoClub/th06
+
+Zun for creating Touhou
