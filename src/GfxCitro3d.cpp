@@ -343,6 +343,18 @@ void GfxCitro3d::GetDepthRange(f32 *depthRange){
     depthRange[1] = this->depthFar3ds;
 }
 
+void GfxCitro3d::ToggleFullScreen(){
+    if(!this->fullscreen){
+        this->scalex = 0.625;
+        this->scaley = 0.5f;
+        this->fullscreen = true;
+    }else{
+        this->scalex = 0.5f;
+        this->scaley = 0.5f;
+        this->fullscreen = false;
+    }
+}
+
 void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){
     //utils::DebugPrint("Set Viewport");
     viewport3ds[0] = x;
@@ -350,21 +362,20 @@ void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){
     viewport3ds[2] = width;
     viewport3ds[3] = height;
 
-    const f32 scalex = 0.5f; //0.625f; (For full screen) // x scale
-    const f32 scaley = 0.5f;
+    // const f32 scalex = 0.5f; //0.625f; (For full screen) // x scale
+    // const f32 scaley = 0.5f;
 
-    const f32 screenX = 40.0f + (f32)x * scalex;
-    const f32 screenY = (f32)y * scaley;
-    const f32 screenW = (f32)width * scalex;
-    const f32 screenH = (f32)height * scaley;
+    f32 screenX = 0;
 
-    // const f32 targetX = 240.0f - (screenY + screenH);
-    // const f32 targetY = screenX;
-
-    // const f32 targetX = screenY;
-    // const f32 targetY = 400.0f - (screenX + screenW);
-
-    // C3D_SetViewport(targetX,targetY,screenH,screenW);
+    if(this->fullscreen){
+        screenX = (f32)x * this->scalex;
+    }else{
+        screenX = 40.0f + (f32)x * this->scalex;
+    }
+    // const f32 screenX = (f32)x * this->scalex;
+    const f32 screenY = (f32)y * this->scaley;
+    const f32 screenW = (f32)width * this->scalex;
+    const f32 screenH = (f32)height * this->scaley;
 
     this->targetX = screenY;
     this->targetY = 400.0f - (screenX + screenW);
@@ -590,68 +601,6 @@ static unsigned MortonIndex8(unsigned x, unsigned y)
            ((y & 4) << 3);
 }
 
-// std::vector<u8> SwizzleTexture(
-//     const void* source,
-//     u32 width,
-//     u32 height,
-//     GPU_TEXCOLOR format)
-// {
-//     const std::size_t bytesPerPixel = BytesPerPixel(format);
-
-//     if (!source || bytesPerPixel == 0)
-//         return {};
-
-//     //PICA textures must be arranged in complete 8x8 tiles.
-//     if ((width % 8) != 0 || (height % 8) != 0){
-//         return {};
-//     }
-
-//     const u8* input = static_cast<const u8*>(source);
-
-//     std::vector<u8> output(
-//         static_cast<std::size_t>(width) *
-//         height *
-//         bytesPerPixel
-//     );
-
-//     const u32 tilesAcross = width / 8;
-
-//     for (u32 y = 0; y < height; ++y)
-//     {
-//         for (u32 x = 0; x < width; ++x)
-//         {
-//             const u32 tileX = x / 8;
-//             const u32 tileY = y / 8;
-
-//             const u32 localX = x % 8;
-//             const u32 localY = y % 8;
-
-//             const u32 tileIndex =
-//                 tileY * tilesAcross + tileX;
-
-//             const u32 pixelIndex =
-//                 tileIndex * 64 +
-//                 MortonIndex8(localX, localY);
-
-//             const std::size_t sourceOffset =
-//                 (static_cast<std::size_t>(y) * width + x) *
-//                 bytesPerPixel;
-
-//             const std::size_t outputOffset =
-//                 static_cast<std::size_t>(pixelIndex) *
-//                 bytesPerPixel;
-
-//             std::memcpy(
-//                 output.data() + outputOffset,
-//                 input + sourceOffset,
-//                 bytesPerPixel
-//             );
-//         }
-//     }
-
-//     return output;
-// }
-
 std::vector<u8> SwizzleTexture(
     const void* source,
     u32 width,
@@ -668,8 +617,6 @@ std::vector<u8> SwizzleTexture(
     if (!source || bytesPerPixel == 0 || width == 0 || height == 0)
         return {};
 
-
-    // This is not correctly padding :(
     // Round each dimension up to the next multiple of 8.
 
     paddedWidth = BitCeil(width);
@@ -869,11 +816,6 @@ void GfxCitro3d::SwapBuffers(){
     C3D_FrameEnd(0);
 }
 
-static bool ValidFloat(float value)
-{
-    return std::isfinite(value);
-}
-
 void GfxCitro3d::SetRhw(bool enable){
     this->useRhw = enable;
 }
@@ -944,7 +886,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
                 this->vertexBuffer[firstVertex+i].u = stripVertices[i].textureUV.x;
                 this->vertexBuffer[firstVertex+i].v = 1.0f-stripVertices[i].textureUV.y;
 
-                this->vertexBuffer[firstVertex+i].r = 256;
+                this->vertexBuffer[firstVertex+i].r = 255;
                 this->vertexBuffer[firstVertex+i].g = 255;
                 this->vertexBuffer[firstVertex+i].b = 255;
                 this->vertexBuffer[firstVertex+i].a = 255;
@@ -952,6 +894,24 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
             this->vertexWriteOffset += count;
             C3D_DrawArrays(C3DPrim, firstVertex, count); 
         }
+        // }else if(!this->useRhw & !this->useTexCoord){
+        //     for (int i = 0; i < count; i++)
+        //     {
+        //         this->vertexBuffer[firstVertex+i].x = stripVertices[i].position.x;
+        //         this->vertexBuffer[firstVertex+i].y = stripVertices[i].position.y;
+        //         this->vertexBuffer[firstVertex+i].z = stripVertices[i].position.z;
+
+        //         this->vertexBuffer[firstVertex+i].u = 0.0f;
+        //         this->vertexBuffer[firstVertex+i].v = 0.0f;
+
+        //         this->vertexBuffer[firstVertex+i].r = stripVertices[i].diffuse.r;
+        //         this->vertexBuffer[firstVertex+i].g = stripVertices[i].diffuse.g;
+        //         this->vertexBuffer[firstVertex+i].b = stripVertices[i].diffuse.b;
+        //         this->vertexBuffer[firstVertex+i].a = stripVertices[i].diffuse.a;
+        //     }  
+        //     this->vertexWriteOffset += count;
+        //     C3D_DrawArrays(C3DPrim, firstVertex, count); 
+        // }
         break;
     case GPU_TRIANGLES:
         for (int i = 0; i < count; i++)

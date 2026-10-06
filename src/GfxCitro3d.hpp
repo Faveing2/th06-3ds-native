@@ -73,6 +73,8 @@ struct GfxCitro3d : GfxInterface
     virtual void Draw(PrimitiveType type, i32 start, i32 count);
     virtual void SwapBuffers();
 
+    virtual void ToggleFullScreen();
+
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
     private:
@@ -143,6 +145,10 @@ struct GfxCitro3d : GfxInterface
         f32 targetX = 0.0f;
         f32 screenW = 0.0f;
         f32 screenH = 0.0f;
+        f32 scalex = 0.5f;
+        f32 scaley = 0.5f;
+
+        bool fullscreen = false;
 
         std::size_t vertexCapacity;
 };

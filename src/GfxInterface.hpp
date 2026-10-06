@@ -157,6 +157,8 @@ struct GfxInterface
     virtual void Draw(PrimitiveType type, i32 start, i32 count) = 0;
     virtual void SwapBuffers() = 0;
 
+    virtual void ToggleFullScreen() = 0;
+
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
 };

@@ -8,6 +8,7 @@
 #include "Supervisor.hpp"
 #include "i18n.hpp"
 #include "utils.hpp"
+#include "GameWindow.hpp"
 
 #include <3ds.h>
 
@@ -249,7 +250,6 @@ u16 Controller::GetControllerInput(u16 buttons)
     //        }
     //    }
     //
-    printf("%i", buttons);
     return buttons;
 }
 
@@ -359,7 +359,6 @@ const u8 *Controller::GetControllerState()
     //        }
     //        memcpy(&g_ControllerData, dijoystate2.rgbButtons, sizeof(dijoystate2.rgbButtons));
 
-    printf("%i", g_ControllerData);
     return g_ControllerData;
     //    }
 }
@@ -398,11 +397,15 @@ u16 GetButtons_3DS()
     if (held & KEY_START)
         buttons |= TH_BUTTON_MENU;
 
-    if (held & KEY_SELECT)
-        buttons |= TH_BUTTON_SKIP;
+    if (held & KEY_SELECT){
+        //buttons |= TH_BUTTON_SKIP;
+        g_GfxBackend->ToggleFullScreen();
+        //Awful awful awful debounce, but for now it'll do
+        svcSleepThread(100000000);
+    }
 
     if (held & KEY_X)
-        buttons |= TH_BUTTON_Q;
+        buttons |= TH_BUTTON_SKIP;
 
     if (held & KEY_Y)
         buttons |= TH_BUTTON_S;
