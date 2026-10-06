@@ -401,7 +401,7 @@ u16 GetButtons_3DS()
         //buttons |= TH_BUTTON_SKIP;
         g_GfxBackend->ToggleFullScreen();
         //Awful awful awful debounce, but for now it'll do
-        svcSleepThread(100000000);
+        svcSleepThread(1000000000);
     }
 
     if (held & KEY_X)
