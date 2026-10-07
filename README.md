@@ -18,6 +18,10 @@ Download and install the CIA/3dsx from the releases section or scan this QR code
 
 ![FBI install QR code](assets/v1.0.0-beta.png)
 
+# Features
+
+Press select to switch between 4:3 and fullscreen
+
 # Building
 
 ### Dependencies
