@@ -768,13 +768,12 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
 
         C3D_TexDelete(&this->boundTexture3ds->texObject);
 
-        // Okay seems the data needs to be formatted differently for the GPU :) sry 3ds you're gonna have to do this in realtime
         C3D_TexInit(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
-        //C3D_TexUpload(&this->boundTexture3ds->texObject, this->boundTexture3ds->data.data());
+        C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
+        C3D_TexSetWrap(&this->boundTexture3ds->texObject, GPU_REPEAT, GPU_REPEAT);
 
         C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
         C3D_TexFlush(&this->boundTexture3ds->texObject);
-
     }
 }
 
