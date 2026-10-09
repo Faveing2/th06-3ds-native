@@ -70,9 +70,9 @@ void GameErrorContext::Flush()
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "log", m_Buffer, NULL);
         }
 
-        logFile = FileSystem::FopenUTF8("/th06/log.txt", "w");
+        // logFile = FileSystem::FopenUTF8("/th06/log.txt", "w");
 
-        std::fprintf(logFile, "%s", m_Buffer);
-        std::fclose(logFile);
+        // std::fprintf(logFile, "%s", m_Buffer);
+        // std::fclose(logFile);
     }
 }

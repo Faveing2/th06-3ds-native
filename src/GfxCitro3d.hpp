@@ -148,6 +148,8 @@ struct GfxCitro3d : GfxInterface
         f32 scalex = 0.5f;
         f32 scaley = 0.5f;
 
+        C3D_FogLut fog_Lut;
+
         bool fullscreen = false;
 
         std::size_t vertexCapacity;

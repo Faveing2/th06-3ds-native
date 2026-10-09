@@ -28,8 +28,6 @@
 static void* vbo_data;
 static PrintConsole bottomScreen;
 
-static C3D_FogLut fog_Lut;
-
 #define POSITION_ATTRIBUTE_INDEX 0
 #define TEX_CORDS_ATTRIBUTE_INDEX 1
 #define DIFFUSE_ATTRIBUTE_INDEX 2
@@ -194,11 +192,19 @@ void GfxCitro3d::Exit(){
 }
 
 void GfxCitro3d::SetFogRange(f32 nearPlane, f32 farplane){
-    // Implement later
+    // FogLut_Exp(&this->fog_Lut, 
+    // //     0.5f,   // Density
+    // //     1.5f,   // Gradient (controls the falloff curve sharpness)
+    // //     -0.00001f,   // Near distance mapping
+    // //     1.0f  // Far distance mapping
+    // // );
+    // // C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
+    // // C3D_FogLutBind(&this->fog_Lut);
 }
 
 void GfxCitro3d::SetFogColor(ZunColor color){
     //C3D_FogColor(u32 color);
+    C3D_FogColor(color); 
 }
 
 void GfxCitro3d::ToggleVertexAttribute(u8 attr, bool enable){
