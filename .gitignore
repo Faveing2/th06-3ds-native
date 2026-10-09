@@ -8,3 +8,7 @@ src/.DS_Store
 th06-3ds-native.3dsx
 makerom
 ctrtool
+*.cia
+*.cxi
+*.cfa
+*.3dsx
