@@ -86,6 +86,8 @@ restart:
 
     g_GameWindow.curFrame = 0;
 
+    g_GfxBackend->ToggleFullScreen();
+
     while (aptMainLoop())
     {
         SDL_Event e;

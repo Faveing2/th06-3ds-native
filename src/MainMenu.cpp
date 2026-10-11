@@ -1752,8 +1752,10 @@ u32 MainMenu::OnUpdateOptionsMenu()
                 if (this->windowed <= 0)
                 {
                     this->windowed = 2;
+                    //g_GfxBackend->ToggleFullScreen();
                 }
                 this->windowed -= 1;
+                g_GfxBackend->ToggleFullScreen();
                 break;
             }
         }
@@ -1817,6 +1819,7 @@ u32 MainMenu::OnUpdateOptionsMenu()
 
                 g_SoundPlayer.PlaySoundByIdx(SOUND_MOVE_MENU);
                 this->windowed += 1;
+                g_GfxBackend->ToggleFullScreen();
                 if (this->windowed >= 2)
                 {
                     this->windowed = 0;
