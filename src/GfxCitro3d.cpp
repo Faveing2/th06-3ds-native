@@ -424,7 +424,19 @@ bool GfxCitro3d::HasError(){
 }
 
 void GfxCitro3d::SetBlendMode(BlendMode mode){
-    
+    if (mode == BLEND_INV_SRC_ALPHA){
+        C3D_AlphaBlend(
+            GPU_BLEND_ADD, GPU_BLEND_ADD, 
+            GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA, 
+            GPU_SRC_ALPHA, GPU_ONE_MINUS_SRC_ALPHA
+        );
+    }else{
+        C3D_AlphaBlend(
+            GPU_BLEND_ADD, GPU_BLEND_ADD, 
+            GPU_SRC_ALPHA, GPU_ONE, 
+            GPU_SRC_ALPHA, GPU_ONE
+        );
+    }
 }
 
 void GfxCitro3d::SetDepthMask(bool enable){
@@ -681,12 +693,6 @@ std::vector<u8> SwizzleTexture(
                 bytesPerPixel
             );   
             }
-
-            // std::memcpy(
-            //     output.data() + outputOffset,
-            //     input + sourceOffset,
-            //     bytesPerPixel
-            // );
         }
     }
 
@@ -892,7 +898,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
                 this->vertexBuffer[firstVertex+i].r = 255;
                 this->vertexBuffer[firstVertex+i].g = 255;
                 this->vertexBuffer[firstVertex+i].b = 255;
-                this->vertexBuffer[firstVertex+i].a = 255;
+                this->vertexBuffer[firstVertex+i].a = 0;
             }  
             this->vertexWriteOffset += count;
             C3D_DrawArrays(C3DPrim, firstVertex, count); 
