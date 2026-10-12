@@ -93,7 +93,7 @@ struct GfxCitro3d : GfxInterface
         DVLB_s* vertex_dvlb;
         shaderProgram_s program;
 
-        u32 C3D_clearcolor = 0x68B0D8FF;
+        u32 C3D_clearcolor = 0x00000000;
         u32 C3D_cleardepth = 0xFFFFFF;
 
         C3D_RenderTarget* target;

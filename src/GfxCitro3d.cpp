@@ -147,7 +147,7 @@ GfxInterface *GfxCitro3d::Init(){
     else
         C3D_TexEnvFunc(self->env, C3D_RGB, GPU_REPLACE);
 
-    C3D_TexEnvColor(self->env, self->C3D_clearcolor);
+    //C3D_TexEnvColor(self->env, self->C3D_clearcolor);
 
     C3D_CullFace(GPU_CULL_NONE);
 
@@ -491,10 +491,8 @@ static u8 FloatToColorByte(f32 value)
 }
 
 void GfxCitro3d::SetClearColor(f32 r, f32 g, f32 b, f32 a){
-
-    this->C3D_clearcolor = C2D_Color32(FloatToColorByte(r),FloatToColorByte(g),FloatToColorByte(b),FloatToColorByte(a));
-    //C3D_TexEnvColor(this->env, this->C3D_clearcolor);
-    C3D_TexEnvColor(this->env, 0x00000000);
+    // Not exactly sure why this exists when the game renders over the entire screen. I'm going to disable it so the edges of the screen stay black. However it can be enabled it if causes problems later on
+    //this->C3D_clearcolor = C2D_Color32(FloatToColorByte(r),FloatToColorByte(g),FloatToColorByte(b),FloatToColorByte(a));
 }
 
 GfxTextureHandle GfxCitro3d::CreateTexture(){
