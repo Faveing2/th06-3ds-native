@@ -258,8 +258,24 @@ void GfxCitro3d::SetColorOp(TextureOpComponent component, ColorOp op){
         break;
     }
 }
-void GfxCitro3d::SetTextureFactor(ZunColor){
+void GfxCitro3d::SetTextureFactor(ZunColor factor){
+    // This seems to rearange the colors and divide them by 255 to turn them into a float between 0-1.
+    // GLfloat tfactorColor[4] = {((factor >> 16) & 0xFF) / 255.0f, ((factor >> 8) & 0xFF) / 255.0f,
+    //                            (factor & 0xFF) / 255.0f, ((factor >> 24) & 0xFF) / 255.0f};
+
+    // Here this GL function takes in 4 GLfloats for the color, however the citro3d equivalent takes in a u32. 
+    // g_glFuncTable.glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, tfactorColor);
+
+    // So my function only needs to rearange the data.
     
+
+    // This doesn't fix the transprency issues, but it doesn't cause anymore so I'll keep it in for now
+    u8 tfactorColor[4] = {((factor >> 16) & 0xFF), ((factor >> 8) & 0xFF),(factor & 0xFF), ((factor >> 24) & 0xFF)};
+
+    u32 color;
+    std::memcpy(&color, tfactorColor, sizeof(color));
+
+    C3D_TexEnvColor(this->env, color);
 }
 
 void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matrix){
@@ -477,7 +493,8 @@ static u8 FloatToColorByte(f32 value)
 void GfxCitro3d::SetClearColor(f32 r, f32 g, f32 b, f32 a){
 
     this->C3D_clearcolor = C2D_Color32(FloatToColorByte(r),FloatToColorByte(g),FloatToColorByte(b),FloatToColorByte(a));
-    C3D_TexEnvColor(this->env, this->C3D_clearcolor);
+    //C3D_TexEnvColor(this->env, this->C3D_clearcolor);
+    C3D_TexEnvColor(this->env, 0x00000000);
 }
 
 GfxTextureHandle GfxCitro3d::CreateTexture(){
