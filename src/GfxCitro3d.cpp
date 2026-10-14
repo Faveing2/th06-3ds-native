@@ -115,6 +115,9 @@ GfxInterface *GfxCitro3d::Init(){
         GPU_TEVOP_A_SRC_ALPHA
     );
 
+    u8 alpha_test_ref = 4;
+    C3D_AlphaTest(true, GPU_GEQUAL, alpha_test_ref);
+
     // GL_COMBINE_ALPHA = GL_MODULATE or GL_REPLACE
     if (((g_Supervisor.cfg.opts >> GCOS_NO_COLOR_COMP) & 1) == 0)
         C3D_TexEnvFunc(self->env, C3D_Alpha, GPU_MODULATE);
@@ -147,21 +150,7 @@ GfxInterface *GfxCitro3d::Init(){
     else
         C3D_TexEnvFunc(self->env, C3D_RGB, GPU_REPLACE);
 
-    //C3D_TexEnvColor(self->env, self->C3D_clearcolor);
-
     C3D_CullFace(GPU_CULL_NONE);
-
-    // Mtx_OrthoTilt(
-    // &self->projectionMatrix,
-    // 0.0f,    // left
-    // 640.0f,  // right
-    // 480.0f,    // bottom
-    // 0.0f,  // top
-    // 0.0f,    // near
-    // 1.0f,    // far
-    // true     // account for 3DS screen orientation
-    // );
-
 
     Mtx_Identity(&self->correctionMatrix);
     Mtx_RotateZ(
@@ -169,13 +158,6 @@ GfxInterface *GfxCitro3d::Init(){
         -M_PI / 2.0f,
         false
     );
-
-    //Mtx_Identity(&self->correctionMatrix);
-
-    // FogLut_Exp(&fog_Lut, 0.05f, 1.5f, 0.01f, 20.0f);
-	// C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
-	// C3D_FogColor(0xD8B068);
-	// C3D_FogLutBind(&fog_Lut);
 
     self->vertexBuffer = static_cast<Vertex3DS*>(linearAlloc(MAX_VERTICES * sizeof(Vertex3DS)));
 
@@ -259,16 +241,6 @@ void GfxCitro3d::SetColorOp(TextureOpComponent component, ColorOp op){
     }
 }
 void GfxCitro3d::SetTextureFactor(ZunColor factor){
-    // This seems to rearange the colors and divide them by 255 to turn them into a float between 0-1.
-    // GLfloat tfactorColor[4] = {((factor >> 16) & 0xFF) / 255.0f, ((factor >> 8) & 0xFF) / 255.0f,
-    //                            (factor & 0xFF) / 255.0f, ((factor >> 24) & 0xFF) / 255.0f};
-
-    // Here this GL function takes in 4 GLfloats for the color, however the citro3d equivalent takes in a u32. 
-    // g_glFuncTable.glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, tfactorColor);
-
-    // So my function only needs to rearange the data.
-    
-
     // This doesn't fix the transprency issues, but it doesn't cause anymore so I'll keep it in for now
     u8 tfactorColor[4] = {((factor >> 16) & 0xFF), ((factor >> 8) & 0xFF),(factor & 0xFF), ((factor >> 24) & 0xFF)};
 
@@ -276,6 +248,9 @@ void GfxCitro3d::SetTextureFactor(ZunColor factor){
     std::memcpy(&color, tfactorColor, sizeof(color));
 
     C3D_TexEnvColor(this->env, color);
+
+    // We must specify that the texture state has been modified
+    C3D_DirtyTexEnv(this->env);
 }
 
 void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matrix){
@@ -323,7 +298,7 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             // this->projectionMatrix.r[i].w = matrix.m[i][3];
         }
 
-        //Rotate the projectino by 90 degrees
+        //Rotate the projection by 90 degrees
         Mtx_Multiply(
             &this->correctedMatrix,
             &this->correctionMatrix,
