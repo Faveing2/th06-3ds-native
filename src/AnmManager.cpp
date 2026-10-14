@@ -956,7 +956,7 @@ ZunResult AnmManager::DrawOrthographic(const AnmVm *vm, bool roundToPixel)
         this->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*g_PrimitivesToDrawNoVertexBuf),
                                   &g_PrimitivesToDrawNoVertexBuf[0].diffuse);
         //        g_Supervisor.d3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, g_PrimitivesToDrawNoVertexBuf, 0x1c);
-        g_GfxBackend->SetRhw(true);
+        //g_GfxBackend->SetRhw(true);
         this->BackendDrawCall();
     }
 
@@ -1308,7 +1308,7 @@ ZunResult AnmManager::Draw3(const AnmVm *vm)
         this->SetAttributePointer(VERTEX_ARRAY_DIFFUSE, sizeof(*g_PrimitivesToDrawUnknown),
                                   &g_PrimitivesToDrawUnknown[0].diffuse);
 
-        g_GfxBackend->SetRhw(false);
+        //g_GfxBackend->SetRhw(false);
         this->BackendDrawCall();
         this->SetTransformMatrix(MATRIX_VIEW, originalView);
     }
@@ -1428,7 +1428,7 @@ ZunResult AnmManager::Draw2(const AnmVm *vm)
 
         //        g_Supervisor.d3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, , 0x18);
 
-        g_GfxBackend->SetRhw(false);
+        //g_GfxBackend->SetRhw(false);
         this->BackendDrawCall();
 
         this->SetTransformMatrix(MATRIX_VIEW, originalView);
@@ -2254,7 +2254,7 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
     this->SetDepthMask(false);
     this->SetDepthFunc(DEPTH_FUNC_ALWAYS);
 
-    g_GfxBackend->SetRhw(false);
+    //g_GfxBackend->SetRhw(false);
     this->BackendDrawCall();
 
     this->SetColorOp(COMPONENT_ALPHA, COLOR_OP_MODULATE);
