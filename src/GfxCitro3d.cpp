@@ -191,19 +191,31 @@ void GfxCitro3d::SetFogColor(ZunColor color){
 
 void GfxCitro3d::ToggleVertexAttribute(u8 attr, bool enable){
     if (attr & VERTEX_ATTR_TEX_COORD){
-        GPU_TEVSRC source0 = enable ? GPU_TEXTURE0 : GPU_PRIMARY_COLOR;
+        const GPU_TEVSRC source0 =
+            enable ? GPU_TEXTURE0 : GPU_PRIMARY_COLOR;
 
-        GPU_TEVSRC source1 = (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0) ? GPU_CONSTANT: GPU_PRIMARY_COLOR;
+        const GPU_TEVSRC source1 =
+            (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0)
+                ? GPU_CONSTANT
+                : GPU_PRIMARY_COLOR;
 
-        C3D_TexEnvSrc(this->env, C3D_Both, source0, source1, GPU_PRIMARY_COLOR);
+        C3D_TexEnvSrc(
+            this->env,
+            C3D_Both,
+            source0,
+            source1,
+            GPU_PRIMARY_COLOR
+        );
+
+        C3D_DirtyTexEnv(this->env);
 
         this->useTexCoord = enable;
-        this->useDiffuse = !enable;
     }
     if (attr & VERTEX_ATTR_DIFFUSE){
-        this->useTexCoord = !enable;
         this->useDiffuse = enable;
     }
+
+    C3D_DirtyTexEnv(this->env);
 }
 
 void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t stride, void *ptr){
@@ -214,25 +226,25 @@ void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t str
         //utils::DebugPrint("Setting Attribute Position");
         this->vertexData = ptr;
         this->vertexStride = stride;
-        if(stride==20){
-            this->useRhw = false;
-        }else{
-            this->useRhw = true;
-        }
+        // if(stride==20){
+        //     this->useRhw = false;
+        // }else{
+        //     this->useRhw = true;
+        // }
         break;
     case VERTEX_ARRAY_TEX_COORD:
         //utils::DebugPrint("Setting Attribute Tex CORD");
         this->texCoordData = ptr;
         this->texCoordStride = stride;
-        this->useTexCoord = true;
-        this->useDiffuse = false;
+        // this->useTexCoord = true;
+        // this->useDiffuse = false;
         break;
     case VERTEX_ARRAY_DIFFUSE:
         //utils::DebugPrint("Setting Attribute Diffuse");
         this->diffuseData = ptr;
         this->diffuseStride = stride;
-        this->useTexCoord = false;
-        this->useDiffuse = true;
+        // this->useTexCoord = false;
+        // this->useDiffuse = true;
         break;
     }
 }
@@ -251,6 +263,7 @@ void GfxCitro3d::SetColorOp(TextureOpComponent component, ColorOp op){
         C3D_TexEnvFunc(this->env, C3D_RGB, opEnums[op]);
         break;
     }
+    C3D_DirtyTexEnv(this->env);
 }
 void GfxCitro3d::SetTextureFactor(ZunColor factor){
     // This doesn't fix the transprency issues, but it doesn't cause anymore so I'll keep it in for now
@@ -440,6 +453,7 @@ void GfxCitro3d::SetBlendMode(BlendMode mode){
             GPU_SRC_ALPHA, GPU_ONE
         );
     }
+
 }
 
 void GfxCitro3d::SetDepthMask(bool enable){
@@ -780,7 +794,7 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
             textureFormat
         );
 
-        //C3D_TexDelete(&this->boundTexture3ds->texObject);
+        C3D_TexDelete(&this->boundTexture3ds->texObject);
 
         C3D_TexInit(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
         C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
@@ -847,16 +861,6 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
     GPU_Primitive_t C3DPrim;
 
-    const VertexDiffuseXyzrhw* vertexdiffuseXyzrhw = nullptr; // This type never actually gets sent think?
-    const VertexTex1Xyzrhw* triangleVertices = nullptr; 
-    const VertexTex1DiffuseXyzrhw* stripVerticesrhw = nullptr;
-    const VertexTex1DiffuseXyz* stripVertices = nullptr;
-
-    vertexdiffuseXyzrhw = static_cast<const VertexDiffuseXyzrhw*>(vertexData);
-    triangleVertices = static_cast<const VertexTex1Xyzrhw*>(vertexData);
-    stripVerticesrhw = static_cast<const VertexTex1DiffuseXyzrhw*>(vertexData);
-    stripVertices = static_cast<const VertexTex1DiffuseXyz*>(vertexData);
-
     switch(type)
     {
     case PRIM_TRIANGLES:
@@ -884,152 +888,48 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
     u32 firstVertex = this->vertexWriteOffset;
 
-    // There's probably a better way to do this using the stride information. But for rn this will do
+    const u8* base_pos = static_cast<const u8*>(this->vertexData);
+    const u8* base_tex = static_cast<const u8*>(this->texCoordData);
+    const u8* base_diffuse = static_cast<const u8*>(this->diffuseData);
 
-    switch(C3DPrim)
-    {
-    case GPU_TRIANGLE_STRIP:
-        if(!this->useRhw & this->useTexCoord){
-            for (int i = 0; i < count; i++)
-            {
-                this->vertexBuffer[firstVertex+i].x = stripVertices[i].position.x;
-                this->vertexBuffer[firstVertex+i].y = stripVertices[i].position.y;
-                this->vertexBuffer[firstVertex+i].z = stripVertices[i].position.z;
+    f32 v;
 
-                this->vertexBuffer[firstVertex+i].u = stripVertices[i].textureUV.x;
-                this->vertexBuffer[firstVertex+i].v = 1.0f-stripVertices[i].textureUV.y;
+    if (true){
+        for(int i = start; i < count; i++){
 
+            const u8* vertex_pos = base_pos + i * this->vertexStride;
+
+            std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos + 0,  sizeof(f32));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].y, vertex_pos + 4,  sizeof(f32));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].z, vertex_pos + 8,  sizeof(f32));
+
+            if(this->useTexCoord){
+                const u8* vertex_tex = base_tex + i * this->texCoordStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex + 0, sizeof(f32));
+                std::memcpy(&v, vertex_tex + 4, sizeof(f32));
+
+                // the v cordinate must be inversed because the screen of the 3ds is rotated by 90 degrees
+                this->vertexBuffer[firstVertex+i].v = 1-v;
+            }else{
+                this->vertexBuffer[firstVertex+i].u = 0;
+                this->vertexBuffer[firstVertex+i].v = 0;
+            }
+
+            if(this->useDiffuse){
+                const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse + 0,  sizeof(u8));
+                std::memcpy(&this->vertexBuffer[firstVertex+i].g, vertex_diffuse + 1,  sizeof(u8));
+                std::memcpy(&this->vertexBuffer[firstVertex+i].b, vertex_diffuse + 2,  sizeof(u8));
+                std::memcpy(&this->vertexBuffer[firstVertex+i].a, vertex_diffuse + 3,  sizeof(u8));
+            }else{
                 this->vertexBuffer[firstVertex+i].r = 255;
                 this->vertexBuffer[firstVertex+i].g = 255;
                 this->vertexBuffer[firstVertex+i].b = 255;
-                this->vertexBuffer[firstVertex+i].a = 255;
-            }  
-            this->vertexWriteOffset += count;
-            C3D_DrawArrays(C3DPrim, firstVertex, count); 
-        }else if(!this->useRhw & this->useDiffuse){
-            for (int i = 0; i < count; i++)
-            {
-                this->vertexBuffer[firstVertex+i].x = vertexdiffuseXyzrhw[i].position.x;
-                this->vertexBuffer[firstVertex+i].y = vertexdiffuseXyzrhw[i].position.y;
-                this->vertexBuffer[firstVertex+i].z = vertexdiffuseXyzrhw[i].position.z;
-
-                this->vertexBuffer[firstVertex+i].u = 0.0f;
-                this->vertexBuffer[firstVertex+i].v = 0.0f;
-
-                this->vertexBuffer[firstVertex+i].r = vertexdiffuseXyzrhw[i].diffuse.r;
-                this->vertexBuffer[firstVertex+i].g = vertexdiffuseXyzrhw[i].diffuse.g;
-                this->vertexBuffer[firstVertex+i].b = vertexdiffuseXyzrhw[i].diffuse.b;
-                this->vertexBuffer[firstVertex+i].a = vertexdiffuseXyzrhw[i].diffuse.a;
-            }  
-            this->vertexWriteOffset += count;
-            C3D_DrawArrays(C3DPrim, firstVertex, count); 
-        }else if(this->useRhw & this->useTexCoord){
-            for (int i = 0; i < count; i++)
-            {
-                this->vertexBuffer[firstVertex+i].x = triangleVertices[i].position.x;
-                this->vertexBuffer[firstVertex+i].y = triangleVertices[i].position.y;
-                this->vertexBuffer[firstVertex+i].z = triangleVertices[i].position.z;
-
-                this->vertexBuffer[firstVertex+i].u = triangleVertices[i].textureUV.x;
-                this->vertexBuffer[firstVertex+i].v = 1.0f-triangleVertices[i].textureUV.y;
-
-                this->vertexBuffer[firstVertex+i].r = 255;
-                this->vertexBuffer[firstVertex+i].g = 255;
-                this->vertexBuffer[firstVertex+i].b = 255;
-                this->vertexBuffer[firstVertex+i].a = 255;
-            }  
-            this->vertexWriteOffset += count;
-            C3D_DrawArrays(C3DPrim, firstVertex, count); 
-        }else if(this->useRhw & this->useDiffuse){
-            for (int i = 0; i < count; i++)
-            {
-                this->vertexBuffer[firstVertex+i].x = stripVerticesrhw[i].position.x;
-                this->vertexBuffer[firstVertex+i].y = stripVerticesrhw[i].position.y;
-                this->vertexBuffer[firstVertex+i].z = stripVerticesrhw[i].position.z;
-
-                this->vertexBuffer[firstVertex+i].u = 0.0f;
-                this->vertexBuffer[firstVertex+i].v = 0.0f;
-
-                this->vertexBuffer[firstVertex+i].r = stripVerticesrhw[i].diffuse.r;
-                this->vertexBuffer[firstVertex+i].g = stripVerticesrhw[i].diffuse.g;
-                this->vertexBuffer[firstVertex+i].b = stripVerticesrhw[i].diffuse.b;
-                this->vertexBuffer[firstVertex+i].a = stripVerticesrhw[i].diffuse.a;
-            }  
-            this->vertexWriteOffset += count;
-            C3D_DrawArrays(C3DPrim, firstVertex, count); 
+                this->vertexBuffer[firstVertex+i].a = 255;               
+            }
         }
-        break;
-    case GPU_TRIANGLES:
-        if(!this->useRhw & this->useTexCoord){
-            for (int i = 0; i < count; i++)
-            {
-                this->vertexBuffer[firstVertex+i].x = stripVertices[i].position.x;
-                this->vertexBuffer[firstVertex+i].y = stripVertices[i].position.y;
-                this->vertexBuffer[firstVertex+i].z = stripVertices[i].position.z;
-
-                this->vertexBuffer[firstVertex+i].u = stripVertices[i].textureUV.x;
-                this->vertexBuffer[firstVertex+i].v = 1.0f-stripVertices[i].textureUV.y;
-
-                this->vertexBuffer[firstVertex+i].r = 255;
-                this->vertexBuffer[firstVertex+i].g = 255;
-                this->vertexBuffer[firstVertex+i].b = 255;
-                this->vertexBuffer[firstVertex+i].a = 255;
-            }  
-            this->vertexWriteOffset += count;
-            C3D_DrawArrays(C3DPrim, firstVertex, count); 
-        }else if(!this->useRhw & this->useDiffuse){
-            for (int i = 0; i < count; i++)
-            {
-                this->vertexBuffer[firstVertex+i].x = vertexdiffuseXyzrhw[i].position.x;
-                this->vertexBuffer[firstVertex+i].y = vertexdiffuseXyzrhw[i].position.y;
-                this->vertexBuffer[firstVertex+i].z = vertexdiffuseXyzrhw[i].position.z;
-
-                this->vertexBuffer[firstVertex+i].u = 0.0f;
-                this->vertexBuffer[firstVertex+i].v = 0.0f;
-
-                this->vertexBuffer[firstVertex+i].r = vertexdiffuseXyzrhw[i].diffuse.r;
-                this->vertexBuffer[firstVertex+i].g = vertexdiffuseXyzrhw[i].diffuse.g;
-                this->vertexBuffer[firstVertex+i].b = vertexdiffuseXyzrhw[i].diffuse.b;
-                this->vertexBuffer[firstVertex+i].a = vertexdiffuseXyzrhw[i].diffuse.a;
-            }  
-            this->vertexWriteOffset += count;
-            C3D_DrawArrays(C3DPrim, firstVertex, count); 
-        }else if(this->useRhw & this->useTexCoord){
-            for (int i = 0; i < count; i++)
-            {
-                this->vertexBuffer[firstVertex+i].x = triangleVertices[i].position.x;
-                this->vertexBuffer[firstVertex+i].y = triangleVertices[i].position.y;
-                this->vertexBuffer[firstVertex+i].z = triangleVertices[i].position.z;
-
-                this->vertexBuffer[firstVertex+i].u = triangleVertices[i].textureUV.x;
-                this->vertexBuffer[firstVertex+i].v = 1.0f-triangleVertices[i].textureUV.y;
-
-                this->vertexBuffer[firstVertex+i].r = 255;
-                this->vertexBuffer[firstVertex+i].g = 255;
-                this->vertexBuffer[firstVertex+i].b = 255;
-                this->vertexBuffer[firstVertex+i].a = 255;
-            }  
-            this->vertexWriteOffset += count;
-            C3D_DrawArrays(C3DPrim, firstVertex, count); 
-        }else if(this->useRhw & this->useDiffuse){
-            for (int i = 0; i < count; i++)
-            {
-                this->vertexBuffer[firstVertex+i].x = stripVerticesrhw[i].position.x;
-                this->vertexBuffer[firstVertex+i].y = stripVerticesrhw[i].position.y;
-                this->vertexBuffer[firstVertex+i].z = stripVerticesrhw[i].position.z;
-
-                this->vertexBuffer[firstVertex+i].u = 0.0f;
-                this->vertexBuffer[firstVertex+i].v = 0.0f;
-
-                this->vertexBuffer[firstVertex+i].r = stripVerticesrhw[i].diffuse.r;
-                this->vertexBuffer[firstVertex+i].g = stripVerticesrhw[i].diffuse.g;
-                this->vertexBuffer[firstVertex+i].b = stripVerticesrhw[i].diffuse.b;
-                this->vertexBuffer[firstVertex+i].a = stripVerticesrhw[i].diffuse.a;
-            }  
-            this->vertexWriteOffset += count;
-            C3D_DrawArrays(C3DPrim, firstVertex, count); 
-        }
-        break;
+        this->vertexWriteOffset += count;
+        C3D_DrawArrays(C3DPrim, firstVertex, count); 
     }
 }
 
