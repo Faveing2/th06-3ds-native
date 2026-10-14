@@ -50,7 +50,6 @@ make
 ```
 # TODO
 - Implement linear fog rendering
-- Fix opacity issues with certain sprites
 - Stereoscopic 3d rendering 
 
 
