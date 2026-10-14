@@ -895,7 +895,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     f32 v;
 
     if (true){
-        for(int i = start; i < count; i++){
+        for(int i = 0; i < count; i++){
 
             const u8* vertex_pos = base_pos + i * this->vertexStride;
 
