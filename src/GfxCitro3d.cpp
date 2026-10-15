@@ -892,44 +892,42 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     const u8* base_tex = static_cast<const u8*>(this->texCoordData);
     const u8* base_diffuse = static_cast<const u8*>(this->diffuseData);
 
-    f32 v;
+    f32 v; //Used for math when copying the vertex data
 
-    if (true){
-        for(int i = 0; i < count; i++){
+    for(int i = 0; i < count; i++){
 
-            const u8* vertex_pos = base_pos + i * this->vertexStride;
+        const u8* vertex_pos = base_pos + i * this->vertexStride;
 
-            std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos + 0,  sizeof(f32));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].y, vertex_pos + 4,  sizeof(f32));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].z, vertex_pos + 8,  sizeof(f32));
+        std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos + 0,  sizeof(f32));
+        std::memcpy(&this->vertexBuffer[firstVertex+i].y, vertex_pos + 4,  sizeof(f32));
+        std::memcpy(&this->vertexBuffer[firstVertex+i].z, vertex_pos + 8,  sizeof(f32));
 
-            if(this->useTexCoord){
-                const u8* vertex_tex = base_tex + i * this->texCoordStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex + 0, sizeof(f32));
-                std::memcpy(&v, vertex_tex + 4, sizeof(f32));
+        if(this->useTexCoord){
+            const u8* vertex_tex = base_tex + i * this->texCoordStride;
+            std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex + 0, sizeof(f32));
+            std::memcpy(&v, vertex_tex + 4, sizeof(f32));
 
-                // the v cordinate must be inversed because the screen of the 3ds is rotated by 90 degrees
-                this->vertexBuffer[firstVertex+i].v = 1-v;
-            }else{
-                this->vertexBuffer[firstVertex+i].u = 0;
-                this->vertexBuffer[firstVertex+i].v = 0;
-            }
-
-            if(this->useDiffuse){
-                const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse + 0,  sizeof(u8));
-                std::memcpy(&this->vertexBuffer[firstVertex+i].g, vertex_diffuse + 1,  sizeof(u8));
-                std::memcpy(&this->vertexBuffer[firstVertex+i].b, vertex_diffuse + 2,  sizeof(u8));
-                std::memcpy(&this->vertexBuffer[firstVertex+i].a, vertex_diffuse + 3,  sizeof(u8));
-            }else{
-                this->vertexBuffer[firstVertex+i].r = 255;
-                this->vertexBuffer[firstVertex+i].g = 255;
-                this->vertexBuffer[firstVertex+i].b = 255;
-                this->vertexBuffer[firstVertex+i].a = 255;               
-            }
+            // the v cordinate must be inversed because the screen of the 3ds is rotated by 90 degrees
+            this->vertexBuffer[firstVertex+i].v = 1-v;
+        }else{
+            this->vertexBuffer[firstVertex+i].u = 0;
+            this->vertexBuffer[firstVertex+i].v = 0;
         }
-        this->vertexWriteOffset += count;
-        C3D_DrawArrays(C3DPrim, firstVertex, count); 
+
+        if(this->useDiffuse){
+            const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
+            std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse + 0,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].g, vertex_diffuse + 1,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].b, vertex_diffuse + 2,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].a, vertex_diffuse + 3,  sizeof(u8));
+        }else{
+            this->vertexBuffer[firstVertex+i].r = 255;
+            this->vertexBuffer[firstVertex+i].g = 255;
+            this->vertexBuffer[firstVertex+i].b = 255;
+            this->vertexBuffer[firstVertex+i].a = 255;               
+        }
     }
+    this->vertexWriteOffset += count;
+    C3D_DrawArrays(C3DPrim, firstVertex, count); 
 }
 
