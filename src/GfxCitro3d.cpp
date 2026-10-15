@@ -82,7 +82,7 @@ GfxInterface *GfxCitro3d::Init(){
     AttrInfo_Init(self->attrInfo);
     AttrInfo_AddLoader(self->attrInfo, POSITION_ATTRIBUTE_INDEX, GPU_FLOAT, 3); //v0 position
     AttrInfo_AddLoader(self->attrInfo, TEX_CORDS_ATTRIBUTE_INDEX, GPU_FLOAT, 2); //v1 texCords
-    AttrInfo_AddLoader(self->attrInfo, DIFFUSE_ATTRIBUTE_INDEX, GPU_UNSIGNED_BYTE, 4); // diffuse
+    AttrInfo_AddLoader(self->attrInfo, DIFFUSE_ATTRIBUTE_INDEX, GPU_FLOAT, 4); // diffuse
 
 	self->env = C3D_GetTexEnv(0);
 	C3D_TexEnvInit(self->env);
@@ -163,7 +163,9 @@ GfxInterface *GfxCitro3d::Init(){
 
     self->vertexBufferInfo = C3D_GetBufInfo();
 	BufInfo_Init(self->vertexBufferInfo);
-	BufInfo_Add(self->vertexBufferInfo , self->vertexBuffer, sizeof(Vertex3DS), 3, 0x210);
+	BufInfo_Add(self->vertexBufferInfo, self->vertexBuffer, sizeof(Vertex3DS), 3, 0x210);
+
+    C3D_DirtyTexEnv(self->env);
 
     return self;
 }   
@@ -190,30 +192,30 @@ void GfxCitro3d::SetFogColor(ZunColor color){
 }
 
 void GfxCitro3d::ToggleVertexAttribute(u8 attr, bool enable){
-    if (attr & VERTEX_ATTR_TEX_COORD){
-        const GPU_TEVSRC source0 =
-            enable ? GPU_TEXTURE0 : GPU_PRIMARY_COLOR;
-
-        const GPU_TEVSRC source1 =
-            (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0)
-                ? GPU_CONSTANT
-                : GPU_PRIMARY_COLOR;
-
-        C3D_TexEnvSrc(
-            this->env,
-            C3D_Both,
-            source0,
-            source1,
-            GPU_PRIMARY_COLOR
-        );
-
-        C3D_DirtyTexEnv(this->env);
-
+    if (attr & VERTEX_ATTR_TEX_COORD)
         this->useTexCoord = enable;
-    }
+
     if (attr & VERTEX_ATTR_DIFFUSE){
         this->useDiffuse = enable;
     }
+
+    const GPU_TEVSRC source0 =
+        this->useTexCoord
+            ? GPU_TEXTURE0
+            : GPU_PRIMARY_COLOR;
+
+    const GPU_TEVSRC source1 =
+        this->useDiffuse
+            ? GPU_PRIMARY_COLOR
+            : GPU_CONSTANT;
+
+    C3D_TexEnvSrc(
+        this->env,
+        C3D_Both,
+        source0,
+        source1,
+        GPU_PRIMARY_COLOR
+    );
 
     C3D_DirtyTexEnv(this->env);
 }
@@ -223,44 +225,32 @@ void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t str
     switch (attr)
     {
     case VERTEX_ARRAY_POSITION:
-        //utils::DebugPrint("Setting Attribute Position");
         this->vertexData = ptr;
         this->vertexStride = stride;
-        // if(stride==20){
-        //     this->useRhw = false;
-        // }else{
-        //     this->useRhw = true;
-        // }
         break;
     case VERTEX_ARRAY_TEX_COORD:
-        //utils::DebugPrint("Setting Attribute Tex CORD");
         this->texCoordData = ptr;
         this->texCoordStride = stride;
-        // this->useTexCoord = true;
-        // this->useDiffuse = false;
         break;
     case VERTEX_ARRAY_DIFFUSE:
-        //utils::DebugPrint("Setting Attribute Diffuse");
         this->diffuseData = ptr;
         this->diffuseStride = stride;
-        // this->useTexCoord = false;
-        // this->useDiffuse = true;
         break;
     }
 }
 void GfxCitro3d::SetColorOp(TextureOpComponent component, ColorOp op){
     const GPU_COMBINEFUNC opEnums[3] {GPU_MODULATE, GPU_ADD, GPU_REPLACE};
 
-    if (component > COMPONENT_ALPHA || op > COLOR_OP_REPLACE){
-        return;
-    }
+    // if (component > COMPONENT_ALPHA || op > COLOR_OP_REPLACE){
+    //     return;
+    // }
 
     switch(component){
         case COMPONENT_ALPHA:
-        C3D_TexEnvFunc(this->env, C3D_Alpha, opEnums[op]);
+            C3D_TexEnvFunc(this->env, C3D_Alpha, opEnums[op]);
         break;
         default:
-        C3D_TexEnvFunc(this->env, C3D_RGB, opEnums[op]);
+            C3D_TexEnvFunc(this->env, C3D_RGB, opEnums[op]);
         break;
     }
     C3D_DirtyTexEnv(this->env);
@@ -348,7 +338,7 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
 }
 
 void GfxCitro3d::SetTextureFilter(){
-    C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
+    //C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
 }
 
 void GfxCitro3d::GetViewport(u32 *viewport){
@@ -453,7 +443,6 @@ void GfxCitro3d::SetBlendMode(BlendMode mode){
             GPU_SRC_ALPHA, GPU_ONE
         );
     }
-
 }
 
 void GfxCitro3d::SetDepthMask(bool enable){
@@ -512,7 +501,7 @@ GfxTextureHandle GfxCitro3d::CreateTexture(){
         this->textures3ds.push_back(std::move(texture));
     }
 
-    C3D_TexInit(&texture->texObject, 1, 1, GPU_RGB8);
+    C3D_TexInit(&texture->texObject, 1, 1, GPU_RGBA8);
 
     return {id};
 }
@@ -541,10 +530,7 @@ void GfxCitro3d::Clear(u32 clearBits){
         mask = (C3D_ClearBits)(mask | C3D_CLEAR_DEPTH);
     
     C3D_RenderTargetClear(
-        this->target,
-        mask,
-        this->C3D_clearcolor,
-        this->C3D_cleardepth
+        this->target,mask, this->C3D_clearcolor, this->C3D_cleardepth
     );
 }
 
@@ -858,7 +844,6 @@ void printMatrix(const C3D_Mtx* mtx) {
 
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
-
     GPU_Primitive_t C3DPrim;
 
     switch(type)
@@ -893,6 +878,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     const u8* base_diffuse = static_cast<const u8*>(this->diffuseData);
 
     f32 v; //Used for math when copying the vertex data
+    u8 r,g,b,a;
 
     for(int i = 0; i < count; i++){
 
@@ -916,15 +902,22 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
         if(this->useDiffuse){
             const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse + 0,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].g, vertex_diffuse + 1,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].b, vertex_diffuse + 2,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].a, vertex_diffuse + 3,  sizeof(u8));
+            std::memcpy(&r, vertex_diffuse + 0,  sizeof(u8));
+            std::memcpy(&g, vertex_diffuse + 1,  sizeof(u8));
+            std::memcpy(&b, vertex_diffuse + 2,  sizeof(u8));
+            std::memcpy(&a, vertex_diffuse + 3,  sizeof(u8));
+
+
+            // We must normalize the rgba values :)
+            this->vertexBuffer[firstVertex+i].r = r/255.0f;
+            this->vertexBuffer[firstVertex+i].g = g/255.0f;
+            this->vertexBuffer[firstVertex+i].b = b/255.0f;
+            this->vertexBuffer[firstVertex+i].a = a/255.0f; 
         }else{
-            this->vertexBuffer[firstVertex+i].r = 255;
-            this->vertexBuffer[firstVertex+i].g = 255;
-            this->vertexBuffer[firstVertex+i].b = 255;
-            this->vertexBuffer[firstVertex+i].a = 255;               
+            this->vertexBuffer[firstVertex+i].r = 0.0f;
+            this->vertexBuffer[firstVertex+i].g = 0.0f;
+            this->vertexBuffer[firstVertex+i].b = 0.0f;
+            this->vertexBuffer[firstVertex+i].a = 0.0f;               
         }
     }
     this->vertexWriteOffset += count;

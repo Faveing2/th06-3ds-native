@@ -13,7 +13,7 @@ struct Vertex3DS
 {
     f32 x, y, z;
     f32 u, v;
-    u8 r,g,b,a;
+    f32 r,g,b,a;
 };
 
 struct Texture3ds
