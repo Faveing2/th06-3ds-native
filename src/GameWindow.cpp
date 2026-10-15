@@ -345,9 +345,9 @@ ZunResult GameWindow::InitD3dRendering()
     //    present_params.AutoDepthStencilFormat = D3DFMT_D16;
     //    present_params.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 
-    g_Supervisor.vsyncEnabled = 1;
+    g_Supervisor.vsyncEnabled = 0;
 
-    g_Supervisor.lockableBackbuffer = 1;
+    g_Supervisor.lockableBackbuffer = 0; // Setting this to zero
     //    memcpy(&g_Supervisor.presentParameters, &present_params, sizeof(D3DPRESENT_PARAMETERS));
     //    for (;;)
     //    {
