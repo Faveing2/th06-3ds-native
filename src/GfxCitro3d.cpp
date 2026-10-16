@@ -167,6 +167,12 @@ GfxInterface *GfxCitro3d::Init(){
 
     C3D_DirtyTexEnv(self->env);
 
+    if(g_Supervisor.cfg.windowed){
+        self->SetFullScreen(false);
+    }else{
+        self->SetFullScreen(true);
+    }
+
     return self;
 }   
 
@@ -353,8 +359,8 @@ void GfxCitro3d::GetDepthRange(f32 *depthRange){
     depthRange[1] = this->depthFar3ds;
 }
 
-void GfxCitro3d::ToggleFullScreen(){
-    if(!this->fullscreen){
+void GfxCitro3d::SetFullScreen(bool enable){
+    if(enable){
         this->scalex = 0.625;
         this->scaley = 0.5f;
         this->fullscreen = true;
@@ -363,6 +369,15 @@ void GfxCitro3d::ToggleFullScreen(){
         this->scaley = 0.5f;
         this->fullscreen = false;
     }
+    // if(!this->fullscreen){
+    //     this->scalex = 0.625;
+    //     this->scaley = 0.5f;
+    //     this->fullscreen = true;
+    // }else{
+    //     this->scalex = 0.5f;
+    //     this->scaley = 0.5f;
+    //     this->fullscreen = false;
+    // }
 }
 
 void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){

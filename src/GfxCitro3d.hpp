@@ -73,7 +73,7 @@ struct GfxCitro3d : GfxInterface
     virtual void Draw(PrimitiveType type, i32 start, i32 count);
     virtual void SwapBuffers();
 
-    virtual void ToggleFullScreen();
+    virtual void SetFullScreen(bool enable);
 
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 

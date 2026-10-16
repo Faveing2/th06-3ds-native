@@ -750,6 +750,7 @@ ZunResult Supervisor::LoadConfig(const char *path)
             //g_Supervisor.cfg.opts |= (0 << GCOS_DISPLAY_MINIMUM_GRAPHICS);
             g_GameErrorContext.Log(TH_ERR_CONFIG_CORRUPTED);
         }
+
         g_ControllerMapping = g_Supervisor.cfg.controllerMapping;
         free((void *)data);
     }
