@@ -1,6 +1,6 @@
 # th06-3ds-native
 
-This project was made possible by the amazing work that has been put into the Touhou 6 decomp projection https://github.com/GensokyoClub/th06. I simply ported the game to the 3ds, they did all the work of decompiling th06
+This project was made possible by the amazing work that has been put into the Touhou 6 decomp projection https://github.com/GensokyoClub/th06. I simply ported the game to the 3ds, they did all the work of decompiling th06.
 
 # Installing
 
