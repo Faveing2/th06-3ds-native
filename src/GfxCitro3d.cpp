@@ -22,7 +22,7 @@
 
 #define CLEAR_COLOR 0x68B0D8FF
 
-// Defines a fixed sized vertex buffer. Surely 20000 verticies will be enough :)
+// Defines a fixed sized vertex buffer. Surely 20000 verticies will be enough :) This is 5.7MB of ram, should probably make this a dynamically allocated array probably
 #define MAX_VERTICES 20000
 
 static void* vbo_data;
@@ -500,6 +500,11 @@ void GfxCitro3d::SetClearColor(f32 r, f32 g, f32 b, f32 a){
     //this->C3D_clearcolor = C2D_Color32(FloatToColorByte(r),FloatToColorByte(g),FloatToColorByte(b),FloatToColorByte(a));
 }
 
+float GfxCitro3d::getVertexBufferUsage(){
+    float usage = this->vertexCount/static_cast<float>(MAX_VERTICES);
+    return usage;
+}
+
 GfxTextureHandle GfxCitro3d::CreateTexture(){
     std::unique_ptr<Texture3ds> texture = std::unique_ptr<Texture3ds>(new Texture3ds());
 
@@ -876,6 +881,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         C3D_FrameDrawOn(this->target);
         this->first_draw = false;
         this->vertexWriteOffset = 0;
+        this->vertexCount = 0;
     }
 
     C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
@@ -936,6 +942,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         }
     }
     this->vertexWriteOffset += count;
+    this->vertexCount += count;
     C3D_DrawArrays(C3DPrim, firstVertex, count); 
 }
 

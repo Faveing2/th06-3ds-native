@@ -184,6 +184,7 @@ struct Supervisor
     u8 colorMode16Bits;
 
     u32 startupTimeBeforeMenuMusic;
+    bool enableDebug = false;
     //    D3DCAPS8 d3dCaps;
 };
 

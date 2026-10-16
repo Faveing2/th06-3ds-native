@@ -244,7 +244,9 @@ ChainCallbackResult Supervisor::OnDraw(Supervisor *s)
     anmm4->currentBlendMode = 0xff;
 
     Supervisor::DrawFpsCounter();
-    //Supervisor::DrawBufferUsage();
+    if(s->enableDebug){
+        Supervisor::DrawBufferUsage();
+    }
     return CHAIN_CALLBACK_RESULT_CONTINUE;
 }
 
@@ -577,10 +579,12 @@ void Supervisor::DrawBufferUsage()
     float elapsed;
     float fps;
     ZunVec3 BufferUsageCounterPos;
+    ZunVec3 VertexBufferUsageCounterPos;
 
     static u32 g_NumFramesSinceLastTime = 0;
     static u32 g_LastTime = SDL_GetTicks();
     static char DrawBufferUsageBuffer[256];
+    static char VertexBufferUsageBuffer[256];
 
     curTime = SDL_GetTicks();
     g_NumFramesSinceLastTime = g_NumFramesSinceLastTime + 1 + (u32)g_Supervisor.cfg.frameskipConfig;
@@ -590,13 +594,18 @@ void Supervisor::DrawBufferUsage()
         g_LastTime = curTime;
         g_NumFramesSinceLastTime = 0;
         sprintf(DrawBufferUsageBuffer, "Buffer Usage: %0.1f", C3D_GetCmdBufUsage() * 100.0f);
+        sprintf(VertexBufferUsageBuffer, "Vertex Usage: %0.1f", g_GfxBackend->getVertexBufferUsage() * 100.0f);
     }
     if (!g_Supervisor.isInEnding)
     {
         BufferUsageCounterPos.x = 0.0;
         BufferUsageCounterPos.y = 0.0;
         BufferUsageCounterPos.z = 0.0;
+        VertexBufferUsageCounterPos.x = 0.0;
+        VertexBufferUsageCounterPos.y = 464.0;
+        VertexBufferUsageCounterPos.z = 0.0;
         g_AsciiManager.AddString(&BufferUsageCounterPos, DrawBufferUsageBuffer);
+        g_AsciiManager.AddString(&VertexBufferUsageCounterPos, VertexBufferUsageBuffer);
     }
     return;
 }

@@ -400,8 +400,14 @@ u16 GetButtons_3DS()
     if (held & KEY_SELECT){
         //buttons |= TH_BUTTON_SKIP;
         //g_GfxBackend->ToggleFullScreen();
+        if(g_Supervisor.enableDebug){
+            g_Supervisor.enableDebug = false;
+        }else{
+            g_Supervisor.enableDebug = true;
+        }
+
         //Awful awful awful debounce, but for now it'll do
-        //svcSleepThread(1000000000);
+        svcSleepThread(1000000000);
     }
 
     if (held & KEY_X)

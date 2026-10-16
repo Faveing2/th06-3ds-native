@@ -75,6 +75,8 @@ struct GfxCitro3d : GfxInterface
 
     virtual void SetFullScreen(bool enable);
 
+    virtual float getVertexBufferUsage();
+
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
     private:
@@ -153,4 +155,5 @@ struct GfxCitro3d : GfxInterface
         bool fullscreen = false;
 
         std::size_t vertexCapacity;
+        i32 vertexCount;
 };
