@@ -77,6 +77,9 @@ struct GfxCitro3d : GfxInterface
 
     virtual float getVertexBufferUsage();
 
+    virtual void EnableAnti(bool enable);
+    virtual void ToggleAnti();
+
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
     private:
@@ -153,6 +156,13 @@ struct GfxCitro3d : GfxInterface
         C3D_FogLut fog_Lut;
 
         bool fullscreen = false;
+        bool anti = false;
+        f32 screenOffset = 40.0f;
+        f32 resY = 400.0f;
+
+        C3D_RenderTarget* aatarget;
+        C3D_RenderTarget* normaltarget;
+        C3D_RenderTarget* activetarget;
 
         std::size_t vertexCapacity;
         i32 vertexCount;
