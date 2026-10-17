@@ -42,6 +42,11 @@ static PrintConsole bottomScreen;
 	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
 	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_XY))
 
+#define DISPLAY_TRANSFER_FLAG_ANTI_X \
+	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
+	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
+	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_X))
+
 GfxInterface *GfxCitro3d::Create(){
 
     GfxCitro3d *interface = new GfxCitro3d();
@@ -58,17 +63,18 @@ GfxInterface *GfxCitro3d::Init(){
     // Increased the CMD buffer size
     C3D_Init(0x100000);
 
+    consoleInit(GFX_BOTTOM, &bottomScreen);
+    consoleSelect(&bottomScreen);
+
     // self->target = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     // //C3D_SetViewport(0,0,400,240);
     // C3D_RenderTargetSetOutput(self->target, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
 
     self->aatarget = C3D_RenderTargetCreate(240 * 2, 400 * 2, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+    self->aaXtarget = C3D_RenderTargetCreate(240 * 2, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     self->normaltarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
 
-    self->EnableAnti(false);
-
-    consoleInit(GFX_BOTTOM, &bottomScreen);
-    consoleSelect(&bottomScreen);
+    self->EnableAnti(0);
 
     // Create the vertex shader
     self->shader_dvlb = DVLB_ParseFile((u32*)ff_shbin, ff_shbin_size);
@@ -370,60 +376,17 @@ void GfxCitro3d::GetDepthRange(f32 *depthRange){
 }
 
 void GfxCitro3d::SetFullScreen(bool enable){
-    if(enable & this->anti){
-        this->scalex = 0.625 * 2;
-        this->scaley = 1.0f;
-        this->fullscreen = true;
-    }else if(enable & !this->anti){
-        this->scalex = 0.625;
-        this->scaley = 0.5f;
-        this->fullscreen = true;
-    }else if(!enable & this->anti){
-        this->scalex = 1.0f;
-        this->scaley = 1.0f;
-        this->fullscreen = false;
-        this->screenOffset = 80.0f;
-    }else{
-        this->scalex = 0.5f;
-        this->scaley = 0.5f;
-        this->fullscreen = false;
-        this->screenOffset = 40.0f;
-    }
-    // if(!this->fullscreen){
-    //     this->scalex = 0.625;
-    //     this->scaley = 0.5f;
-    //     this->fullscreen = true;
-    // }else{
-    //     this->scalex = 0.5f;
-    //     this->scaley = 0.5f;
-    //     this->fullscreen = false;
-    // }
+    this->fullscreen = enable;
+    this->EnableAnti(this->antimode);
 }
 
-void GfxCitro3d::EnableAnti(bool enable){
-    if(enable){
-        this->anti = true;
-        this->resY = 800.0f;
 
-        if(this->fullscreen){
-            this->scalex = 0.625 * 2;
-            this->scaley = 1.0f;
-        }else{
-            this->scalex = 1.0;
-            this->scaley = 1.0f;
-            this->screenOffset = 80.0f;
-        }
+// Switch this to use a enum instead of a integer
+void GfxCitro3d::EnableAnti(i32 mode){
 
-        this->activetarget = this->aatarget;
+    this->antimode = mode;
 
-        C3D_RenderTargetSetOutput(
-            this->activetarget,
-            GFX_TOP,
-            GFX_LEFT,
-            DISPLAY_TRANSFER_FLAG_ANTI
-        );
-
-    }else{
+    if(this->antimode==0){
         this->anti = false;
         this->resY = 400.0f;
 
@@ -444,14 +407,54 @@ void GfxCitro3d::EnableAnti(bool enable){
             GFX_LEFT,
             DISPLAY_TRANSFER_FLAGS
         );
+    }else if(this->antimode==1){
+        this->resY = 800.0f;
+
+        if(this->fullscreen){
+            this->scalex = 0.625 * 2;
+            this->scaley = 1.0f;
+        }else{
+            this->scalex = 1.0f;
+            this->scaley = 1.0f;
+            this->screenOffset = 80.0f;
+        }
+
+        this->activetarget = this->aatarget;
+
+        C3D_RenderTargetSetOutput(
+            this->activetarget,
+            GFX_TOP,
+            GFX_LEFT,
+            DISPLAY_TRANSFER_FLAG_ANTI
+        );
+    }else if(this->antimode==2){
+        this->resY = 400.0f;
+
+        if(this->fullscreen){
+            this->scalex = 0.625;
+            this->scaley = 1.0f;
+        }else{
+            this->scalex = 0.5f;
+            this->scaley = 1.0f;
+            this->screenOffset = 40.0f;
+        }
+
+        this->activetarget = this->aaXtarget;
+
+        C3D_RenderTargetSetOutput(
+            this->activetarget,
+            GFX_TOP,
+            GFX_LEFT,
+            DISPLAY_TRANSFER_FLAG_ANTI_X
+        );
     }
 }
 
 void GfxCitro3d::ToggleAnti(){
-    if(this->anti){
-        this->EnableAnti(false);
+    if(this->antimode==2){
+        this->EnableAnti(0);
     }else{
-        this->EnableAnti(true);
+        this->EnableAnti(this->antimode+1);
     }
 }
 
@@ -482,24 +485,6 @@ void GfxCitro3d::SetViewport(i32 x, i32 y, i32 width, i32 height){
     this->targetY = this->resY - (screenX + screenW);
     this->screenH = screenH;
     this->screenW = screenW;
-
-    // const f32 offsetX = (400.0f - (640.0f * scalex)) * 0.5f;
-    
-    // const f32 vx = (offsetX + ((f32)x*scalex));
-    // const f32 vy = 240.0f - ((f32)(y + height) * scalex);
-    // const f32 vw = (f32)width*scalex;
-    // const f32 vh = (f32)height*scaley;
-
-    // printf("(%i,%i,%i,%i)\n",x,y,width,height);
-    // printf("(%f,%f,%f,%f)\n",vy,vx,vh,vw);
-    // C3D_SetViewport(vy,vx,vh,vw);
-
-    // C3D_SetViewport(
-    //     0,      // x
-    //     40,     // padding corresponding to physical side bars
-    //     240,    // logical target width
-    //     320     // logical target height
-    // );
 }
 
 void GfxCitro3d::SetDepthRange(f32 nearPlane, f32 farPlane){
