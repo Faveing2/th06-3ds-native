@@ -37,6 +37,7 @@ static PrintConsole bottomScreen;
 	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
 	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
 
+// The two antialiasing modes, XY is rendering the game at 2x resolution, and X is doubling the X resolution
 #define DISPLAY_TRANSFER_FLAG_ANTI \
 	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
 	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
@@ -66,14 +67,11 @@ GfxInterface *GfxCitro3d::Init(){
     consoleInit(GFX_BOTTOM, &bottomScreen);
     consoleSelect(&bottomScreen);
 
-    // self->target = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
-    // //C3D_SetViewport(0,0,400,240);
-    // C3D_RenderTargetSetOutput(self->target, GFX_TOP, GFX_LEFT, DISPLAY_TRANSFER_FLAGS);
-
     self->aatarget = C3D_RenderTargetCreate(240 * 2, 400 * 2, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     self->aaXtarget = C3D_RenderTargetCreate(240 * 2, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     self->normaltarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
 
+    // Set the game to run with no antialising by default
     self->EnableAnti(0);
 
     // Create the vertex shader
@@ -175,6 +173,7 @@ GfxInterface *GfxCitro3d::Init(){
         false
     );
 
+    // Define the fixed sized vertex buffer
     self->vertexBuffer = static_cast<Vertex3DS*>(linearAlloc(MAX_VERTICES * sizeof(Vertex3DS)));
 
     self->vertexBufferInfo = C3D_GetBufInfo();
@@ -263,10 +262,6 @@ void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t str
 void GfxCitro3d::SetColorOp(TextureOpComponent component, ColorOp op){
     const GPU_COMBINEFUNC opEnums[3] {GPU_MODULATE, GPU_ADD, GPU_REPLACE};
 
-    // if (component > COMPONENT_ALPHA || op > COLOR_OP_REPLACE){
-    //     return;
-    // }
-
     switch(component){
         case COMPONENT_ALPHA:
             C3D_TexEnvFunc(this->env, C3D_Alpha, opEnums[op]);
@@ -278,7 +273,7 @@ void GfxCitro3d::SetColorOp(TextureOpComponent component, ColorOp op){
     C3D_DirtyTexEnv(this->env);
 }
 void GfxCitro3d::SetTextureFactor(ZunColor factor){
-    // This doesn't fix the transprency issues, but it doesn't cause anymore so I'll keep it in for now
+    // The original code has this bit shifting code so i'll keep it in, I'm not exactly sure why the factor must be bitshifted.
     u8 tfactorColor[4] = {((factor >> 16) & 0xFF), ((factor >> 8) & 0xFF),(factor & 0xFF), ((factor >> 24) & 0xFF)};
 
     u32 color;
@@ -292,7 +287,7 @@ void GfxCitro3d::SetTextureFactor(ZunColor factor){
 
 void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matrix){
 
-    // Matricies need to be transposed
+    // Matricies need to be transposed since ZunMatrix and C3D_Mtx are stored differently
     switch (type)
     {
     case MATRIX_MODEL:
@@ -302,10 +297,6 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             this->modelViewMatrix.r[i].y = matrix.m[1][i];
             this->modelViewMatrix.r[i].z = matrix.m[2][i];
             this->modelViewMatrix.r[i].w = matrix.m[3][i];
-            // this->modelViewMatrix.r[i].x = matrix.m[i][0];
-            // this->modelViewMatrix.r[i].y = matrix.m[i][1];
-            // this->modelViewMatrix.r[i].z = matrix.m[i][2];
-            // this->modelViewMatrix.r[i].w = matrix.m[i][3];
         }
         break;
     case MATRIX_VIEW:
@@ -315,10 +306,6 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             this->modelViewMatrix.r[i].y = matrix.m[1][i];
             this->modelViewMatrix.r[i].z = matrix.m[2][i];
             this->modelViewMatrix.r[i].w = matrix.m[3][i];
-            // this->modelViewMatrix.r[i].x = matrix.m[i][0];
-            // this->modelViewMatrix.r[i].y = matrix.m[i][1];
-            // this->modelViewMatrix.r[i].z = matrix.m[i][2];
-            // this->modelViewMatrix.r[i].w = matrix.m[i][3];
         }
         break;
     case MATRIX_PROJECTION:
@@ -329,10 +316,6 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             this->projectionMatrix.r[i].y = matrix.m[1][i];
             this->projectionMatrix.r[i].z = matrix.m[2][i];
             this->projectionMatrix.r[i].w = matrix.m[3][i];
-            // this->projectionMatrix.r[i].x = matrix.m[i][0];
-            // this->projectionMatrix.r[i].y = matrix.m[i][1];
-            // this->projectionMatrix.r[i].z = matrix.m[i][2];
-            // this->projectionMatrix.r[i].w = matrix.m[i][3];
         }
 
         //Rotate the projection by 90 degrees
@@ -349,11 +332,6 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             this->textureMatrixMatrix.r[i].y = matrix.m[1][i];
             this->textureMatrixMatrix.r[i].z = matrix.m[2][i];
             this->textureMatrixMatrix.r[i].w = matrix.m[3][i];
-
-            // this->textureMatrixMatrix.r[i].x = matrix.m[i][0];
-            // this->textureMatrixMatrix.r[i].y = matrix.m[i][1];
-            // this->textureMatrixMatrix.r[i].z = matrix.m[i][2];
-            // this->textureMatrixMatrix.r[i].w = matrix.m[i][3];
         }
         break;
     }
@@ -625,32 +603,6 @@ void GfxCitro3d::DeleteTexture(GfxTextureHandle handle){
     freeTextures3ds.push_back(handle.id);
 }
 
-inline SDL_PixelFormatEnum GetSDLPixelFormat(PixelFormat fmt, PixelDataType type)
-{
-    switch (type)
-    {
-    case PIXEL_UNSIGNED_BYTE:
-        if (fmt == PIXEL_RGB){
-            printf("SDL RGB32");
-            return SDL_PIXELFORMAT_RGB24;
-        }else{
-            printf("SDL ARGB32");
-            return SDL_PIXELFORMAT_RGBA32;
-        }
-    case PIXEL_UNSIGNED_SHORT_4_4_4_4:
-        printf("SDL ARGB24");
-        return SDL_PIXELFORMAT_RGBA4444;
-    case PIXEL_UNSIGNED_SHORT_5_5_5_1:
-        printf("SDL RGBA5551");
-        return SDL_PIXELFORMAT_RGBA5551;
-    case PIXEL_UNSIGNED_SHORT_5_6_5:
-        printf("SDL RGB565");
-        return SDL_PIXELFORMAT_RGB565;
-    }
-}
-
-
-
 inline GPU_TEXCOLOR Get3DSPixelFormat(PixelFormat fmt, PixelDataType type)
 {
     switch (type)
@@ -781,45 +733,6 @@ std::vector<u8> SwizzleTexture(
 
     return output;
 }
-// u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height){
-    
-//     u32 pixelcount = width*height*3;
-
-//     u8* output = new u8[pixelcount];
-    
-//     for(u32 i = 0; i < pixelcount; i++){
-//         const u32 offset = i*3;
-
-//         output[offset + 0] = data[offset + 2];
-//         output[offset + 1] = data[offset + 1];
-//         output[offset + 2] = data[offset + 0];
-//     }
-    
-//     return output;
-// }
-
-void CopyTextureData(Texture3ds& texture, const void* data, u32 width, u32 height, GPU_TEXCOLOR format, u32 bpp){
-    std::size_t size = static_cast<std::size_t>(width)*static_cast<std::size_t>(height)*static_cast<std::size_t>(bpp);
-    const u8* pixels = static_cast<const u8*>(data);
-
-    texture.data.assign(pixels, pixels + size);
-}
-
-u32 NextPowerOfTwo(u32 value)
-{
-    if (value <= 8)
-        return 8;
-
-    --value;
-
-    value |= value >> 1;
-    value |= value >> 2;
-    value |= value >> 4;
-    value |= value >> 8;
-    value |= value >> 16;
-
-    return value + 1;
-}
 
 void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDataType type, const void *data){
     //utils::DebugPrint("Setting Texture Image");
@@ -873,18 +786,10 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
 }
 
 void GfxCitro3d::SetTextureSubImage(i32 xoffset, i32 yoffset, i32 width, i32 height, const void *data){
-    //utils::DebugPrint("Setting Texture SubImage");
-    // if (this->boundTexture3ds)
-    // {
-    //     SDL_ConvertPixels(width, height, SDL_PIXELFORMAT_RGB24, data, width * 3, SDL_PIXELFORMAT_ARGB8888,
-    //                       boundTexture3ds->texels.data() + (yoffset * boundTexture3ds->width) + xoffset,
-    //                       boundTexture3ds->width * sizeof(u32));
-
-    //     //C3D_TexUpload(&this->boundTexture3ds->texObject,  data);
-    // }
-
+    // Rerouted all calls to this function to SetTextureImage
 }
 
+// This doesn't work causing the corrupted texture on the pause screen
 void GfxCitro3d::ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pixels){
     u16 width_gfx = static_cast<u16>(width);
     u16 height_gfx = static_cast<u16>(height);
@@ -899,28 +804,12 @@ void GfxCitro3d::ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pix
         const u8 *src = (u8 *)fb + ((GAME_WINDOW_HEIGHT - 1 - (y+row)) * GAME_WINDOW_WIDTH + x)*4;
         memcpy(dst + row * pitch, src, pitch);
     }
-
 }
 
 void GfxCitro3d::SwapBuffers(){
     this->first_draw = true;
     this->vertexWriteOffset = 0;
     C3D_FrameEnd(0);
-}
-
-void GfxCitro3d::SetRhw(bool enable){
-    this->useRhw = enable;
-}
-
-void printMatrix(const C3D_Mtx* mtx) {
-    for (int i = 0; i < 4; i++) {
-        printf("[ %0.1f  %0.1f  %0.1f  %0.1f ]\n", 
-               mtx->r[i].x, 
-               mtx->r[i].y, 
-               mtx->r[i].z, 
-               mtx->r[i].w);
-    }
-    printf("\n");
 }
 
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
