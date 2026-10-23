@@ -13,7 +13,7 @@ struct Vertex3DS
 {
     f32 x, y, z;
     f32 u, v;
-    f32 r,g,b,a;
+    u8 r,g,b,a;
 };
 
 struct Texture3ds
@@ -75,7 +75,7 @@ struct GfxCitro3d : GfxInterface
 
     virtual float getVertexBufferUsage();
 
-    virtual void EnableAnti(i32 mode);
+    virtual void EnableAnti(AntiAliasingModes mode);
     virtual void ToggleAnti();
 
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
@@ -155,7 +155,7 @@ struct GfxCitro3d : GfxInterface
 
         bool fullscreen = true;
         bool anti = false;
-        i32 antimode = 0;
+        AntiAliasingModes antimode = NoAnti;
         f32 screenOffset = 40.0f;
         f32 resY = 400.0f;
 

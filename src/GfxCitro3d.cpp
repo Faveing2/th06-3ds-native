@@ -72,7 +72,7 @@ GfxInterface *GfxCitro3d::Init(){
     self->normaltarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
 
     // Set the game to run with no antialising by default
-    self->EnableAnti(0);
+    // self->SetFullScreen(false);
 
     // Create the vertex shader
     self->shader_dvlb = DVLB_ParseFile((u32*)ff_shbin, ff_shbin_size);
@@ -96,7 +96,7 @@ GfxInterface *GfxCitro3d::Init(){
     AttrInfo_Init(self->attrInfo);
     AttrInfo_AddLoader(self->attrInfo, POSITION_ATTRIBUTE_INDEX, GPU_FLOAT, 3); //v0 position
     AttrInfo_AddLoader(self->attrInfo, TEX_CORDS_ATTRIBUTE_INDEX, GPU_FLOAT, 2); //v1 texCords
-    AttrInfo_AddLoader(self->attrInfo, DIFFUSE_ATTRIBUTE_INDEX, GPU_FLOAT, 4); // diffuse
+    AttrInfo_AddLoader(self->attrInfo, DIFFUSE_ATTRIBUTE_INDEX, GPU_UNSIGNED_BYTE, 4); // diffuse
 
 	self->env = C3D_GetTexEnv(0);
 	C3D_TexEnvInit(self->env);
@@ -187,6 +187,8 @@ GfxInterface *GfxCitro3d::Init(){
     }else{
         self->SetFullScreen(true);
     }
+
+    self->antimode = NoAnti;
 
     return self;
 }   
@@ -360,79 +362,159 @@ void GfxCitro3d::SetFullScreen(bool enable){
 
 
 // Switch this to use a enum instead of a integer
-void GfxCitro3d::EnableAnti(i32 mode){
+void GfxCitro3d::EnableAnti(AntiAliasingModes mode){
 
     this->antimode = mode;
 
-    if(this->antimode==0){
-        this->anti = false;
-        this->resY = 400.0f;
+    switch(this->antimode)
+    {
+        case(NoAnti):
+            this->resY = 400.0f;
 
-        if(this->fullscreen){
-            this->scalex = 0.625;
-            this->scaley = 0.5f;
-        }else{
-            this->scalex = 0.5f;
-            this->scaley = 0.5f;
-            this->screenOffset = 40.0f;
-        }
+            if(this->fullscreen){
+                this->scalex = 0.625;
+                this->scaley = 0.5f;
+            }else{
+                this->scalex = 0.5f;
+                this->scaley = 0.5f;
+                this->screenOffset = 40.0f;
+            }
 
-        this->activetarget = this->normaltarget;
+            this->activetarget = this->normaltarget;
 
-        C3D_RenderTargetSetOutput(
-            this->activetarget,
-            GFX_TOP,
-            GFX_LEFT,
-            DISPLAY_TRANSFER_FLAGS
-        );
-    }else if(this->antimode==1){
-        this->resY = 800.0f;
+            C3D_RenderTargetSetOutput(
+                this->activetarget,
+                GFX_TOP,
+                GFX_LEFT,
+                DISPLAY_TRANSFER_FLAGS
+            );
+            break;
+        case(Anti2x):
+            this->resY = 800.0f;
 
-        if(this->fullscreen){
-            this->scalex = 0.625 * 2;
-            this->scaley = 1.0f;
-        }else{
-            this->scalex = 1.0f;
-            this->scaley = 1.0f;
-            this->screenOffset = 80.0f;
-        }
+            if(this->fullscreen){
+                this->scalex = 0.625 * 2;
+                this->scaley = 1.0f;
+            }else{
+                this->scalex = 1.0f;
+                this->scaley = 1.0f;
+                this->screenOffset = 80.0f;
+            }
 
-        this->activetarget = this->aatarget;
+            this->activetarget = this->aatarget;
 
-        C3D_RenderTargetSetOutput(
-            this->activetarget,
-            GFX_TOP,
-            GFX_LEFT,
-            DISPLAY_TRANSFER_FLAG_ANTI
-        );
-    }else if(this->antimode==2){
-        this->resY = 400.0f;
+            C3D_RenderTargetSetOutput(
+                this->activetarget,
+                GFX_TOP,
+                GFX_LEFT,
+                DISPLAY_TRANSFER_FLAG_ANTI
+            );
+            break;
+        case(Anti15x):
+            this->resY = 400.0f;
 
-        if(this->fullscreen){
-            this->scalex = 0.625;
-            this->scaley = 1.0f;
-        }else{
-            this->scalex = 0.5f;
-            this->scaley = 1.0f;
-            this->screenOffset = 40.0f;
-        }
+            if(this->fullscreen){
+                this->scalex = 0.625;
+                this->scaley = 1.0f;
+            }else{
+                this->scalex = 0.5f;
+                this->scaley = 1.0f;
+                this->screenOffset = 40.0f;
+            }
 
-        this->activetarget = this->aaXtarget;
+            this->activetarget = this->aaXtarget;
 
-        C3D_RenderTargetSetOutput(
-            this->activetarget,
-            GFX_TOP,
-            GFX_LEFT,
-            DISPLAY_TRANSFER_FLAG_ANTI_X
-        );
+            C3D_RenderTargetSetOutput(
+                this->activetarget,
+                GFX_TOP,
+                GFX_LEFT,
+                DISPLAY_TRANSFER_FLAG_ANTI_X
+            );
+            break;
     }
+
+    // if(this->antimode==NoAnti){
+    //     this->anti = false;
+    //     this->resY = 400.0f;
+
+    //     if(this->fullscreen){
+    //         this->scalex = 0.625;
+    //         this->scaley = 0.5f;
+    //     }else{
+    //         this->scalex = 0.5f;
+    //         this->scaley = 0.5f;
+    //         this->screenOffset = 40.0f;
+    //     }
+
+    //     this->activetarget = this->normaltarget;
+
+    //     C3D_RenderTargetSetOutput(
+    //         this->activetarget,
+    //         GFX_TOP,
+    //         GFX_LEFT,
+    //         DISPLAY_TRANSFER_FLAGS
+    //     );
+    // }else if(this->antimode==1){
+    //     this->resY = 800.0f;
+
+    //     if(this->fullscreen){
+    //         this->scalex = 0.625 * 2;
+    //         this->scaley = 1.0f;
+    //     }else{
+    //         this->scalex = 1.0f;
+    //         this->scaley = 1.0f;
+    //         this->screenOffset = 80.0f;
+    //     }
+
+    //     this->activetarget = this->aatarget;
+
+    //     C3D_RenderTargetSetOutput(
+    //         this->activetarget,
+    //         GFX_TOP,
+    //         GFX_LEFT,
+    //         DISPLAY_TRANSFER_FLAG_ANTI
+    //     );
+    // }else if(this->antimode==2){
+    //     this->resY = 400.0f;
+
+    //     if(this->fullscreen){
+    //         this->scalex = 0.625;
+    //         this->scaley = 1.0f;
+    //     }else{
+    //         this->scalex = 0.5f;
+    //         this->scaley = 1.0f;
+    //         this->screenOffset = 40.0f;
+    //     }
+
+    //     this->activetarget = this->aaXtarget;
+
+    //     C3D_RenderTargetSetOutput(
+    //         this->activetarget,
+    //         GFX_TOP,
+    //         GFX_LEFT,
+    //         DISPLAY_TRANSFER_FLAG_ANTI_X
+    //     );
+    // }
 }
 
 void GfxCitro3d::ToggleAnti(){
-    if(this->antimode==2){
-        this->EnableAnti(0);
-    }else{
-        this->EnableAnti(this->antimode+1);
+    // if(this->antimode==Anti15x){
+    //     this->EnableAnti(NoAnti);
+    // }else{
+    //     this->EnableAnti(this->antimode+1);
+    // }
+
+    switch (this->antimode)
+    {
+    case(NoAnti):
+        this->EnableAnti(Anti2x);
+        break;
+    case(Anti2x):
+        this->EnableAnti(Anti15x);
+        break;
+    case(Anti15x):
+        this->EnableAnti(NoAnti);
+        break;
     }
 }
 
@@ -848,9 +930,6 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     const u8* base_tex = static_cast<const u8*>(this->texCoordData);
     const u8* base_diffuse = static_cast<const u8*>(this->diffuseData);
 
-    f32 v; //Used for math when copying the vertex data
-    u8 r,g,b,a;
-
     for(int i = 0; i < count; i++){
 
         const u8* vertex_pos = base_pos + i * this->vertexStride;
@@ -862,10 +941,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         if(this->useTexCoord){
             const u8* vertex_tex = base_tex + i * this->texCoordStride;
             std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex + 0, sizeof(f32));
-            std::memcpy(&v, vertex_tex + 4, sizeof(f32));
-
-            // the v cordinate must be inversed because the screen of the 3ds is rotated by 90 degrees
-            this->vertexBuffer[firstVertex+i].v = 1-v;
+            std::memcpy(&this->vertexBuffer[firstVertex+i].v, vertex_tex + 4, sizeof(f32));
         }else{
             this->vertexBuffer[firstVertex+i].u = 0;
             this->vertexBuffer[firstVertex+i].v = 0;
@@ -873,17 +949,10 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
         if(this->useDiffuse){
             const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
-            std::memcpy(&r, vertex_diffuse + 0,  sizeof(u8));
-            std::memcpy(&g, vertex_diffuse + 1,  sizeof(u8));
-            std::memcpy(&b, vertex_diffuse + 2,  sizeof(u8));
-            std::memcpy(&a, vertex_diffuse + 3,  sizeof(u8));
-
-
-            // We must normalize the rgba values :)
-            this->vertexBuffer[firstVertex+i].r = r/255.0f;
-            this->vertexBuffer[firstVertex+i].g = g/255.0f;
-            this->vertexBuffer[firstVertex+i].b = b/255.0f;
-            this->vertexBuffer[firstVertex+i].a = a/255.0f; 
+            std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse + 0,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].g, vertex_diffuse + 1,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].b, vertex_diffuse + 2,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].a, vertex_diffuse + 3,  sizeof(u8));
         }else{
             this->vertexBuffer[firstVertex+i].r = 0.0f;
             this->vertexBuffer[firstVertex+i].g = 0.0f;

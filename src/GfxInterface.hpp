@@ -81,6 +81,13 @@ enum PixelDataType
     PIXEL_UNSIGNED_SHORT_5_6_5,
     PIXEL_UNSIGNED_SHORT_4_4_4_4
 };
+
+enum AntiAliasingModes
+{
+    NoAnti,
+    Anti2x,
+    Anti15x
+};
 struct GfxTextureHandle
 {
     u32 id = 0;
@@ -158,7 +165,7 @@ struct GfxInterface
     virtual void SetFullScreen(bool enable) = 0;
     virtual float getVertexBufferUsage() = 0;
 
-    virtual void EnableAnti(i32 mode) = 0;
+    virtual void EnableAnti(AntiAliasingModes mode) = 0;
     virtual void ToggleAnti();
 
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
