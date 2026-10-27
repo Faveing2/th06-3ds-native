@@ -613,7 +613,7 @@ void GfxCitro3d::SetClearDepth(f32 depth){
 static u8 FloatToColorByte(f32 value)
 {
     value = std::clamp(value, 0.0f, 1.0f);
-    return static_cast<u8>(value * 255.0f + 0.5f);
+    return (u8)(value * 255.0f + 0.5f);
 }
 
 void GfxCitro3d::SetClearColor(f32 r, f32 g, f32 b, f32 a){
@@ -641,8 +641,6 @@ GfxTextureHandle GfxCitro3d::CreateTexture(){
         id = this->textures3ds.size();
         this->textures3ds.push_back(std::move(texture));
     }
-
-    C3D_TexInit(&texture->texObject, 1, 1, GPU_RGBA8);
 
     return {id};
 }
@@ -856,7 +854,7 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
             textureFormat
         );
 
-        C3D_TexDelete(&this->boundTexture3ds->texObject);
+        //C3D_TexDelete(&this->boundTexture3ds->texObject);
 
         C3D_TexInit(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
         C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
@@ -871,21 +869,21 @@ void GfxCitro3d::SetTextureSubImage(i32 xoffset, i32 yoffset, i32 width, i32 hei
     // Rerouted all calls to this function to SetTextureImage
 }
 
-// This doesn't work causing the corrupted texture on the pause screen
+// Ya this is going to be a nightmare to implement :(
 void GfxCitro3d::ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pixels){
-    u16 width_gfx = static_cast<u16>(width);
-    u16 height_gfx = static_cast<u16>(height);
+    // u16 width_gfx = (u16)(width) * this->scalex;
+    // u16 height_gfx = (u16)(height) * this->scaley;
 
-    u8 *dst = (u8 *)pixels;
+    // u8 *dst = (u8 *)pixels;
 
-    u8* fb = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &width_gfx, &height_gfx);
+    // u8* fb = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, &width_gfx, &height_gfx);
 
-    i32 pitch = width*4;
+    // i32 pitch = width*4;
 
-    for (i32 row = 0; row < height; row++){
-        const u8 *src = (u8 *)fb + ((GAME_WINDOW_HEIGHT - 1 - (y+row)) * GAME_WINDOW_WIDTH + x)*4;
-        memcpy(dst + row * pitch, src, pitch);
-    }
+    // for (i32 row = 0; row < height; row++){
+    //     const u8 *src = (u8 *)fb + ((GAME_WINDOW_HEIGHT - 1 - (y+row)) * GAME_WINDOW_WIDTH + x)*4;
+    //     memcpy(dst + row * pitch, src, pitch);
+    // }
 }
 
 void GfxCitro3d::SwapBuffers(){
@@ -926,38 +924,29 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
     u32 firstVertex = this->vertexWriteOffset;
 
-    const u8* base_pos = static_cast<const u8*>(this->vertexData);
-    const u8* base_tex = static_cast<const u8*>(this->texCoordData);
-    const u8* base_diffuse = static_cast<const u8*>(this->diffuseData);
+    const u8* base_pos = (const u8*)(this->vertexData);
+    const u8* base_tex = (const u8*)(this->texCoordData);
+    const u8* base_diffuse = (const u8*)(this->diffuseData);
 
-    for(int i = 0; i < count; i++){
+    if(this->useTexCoord){
+        for(int i = 0; i < count; i++){
+            const u8* vertex_pos = base_pos + i * this->vertexStride;
+            std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
 
-        const u8* vertex_pos = base_pos + i * this->vertexStride;
-
-        std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos + 0,  sizeof(f32));
-        std::memcpy(&this->vertexBuffer[firstVertex+i].y, vertex_pos + 4,  sizeof(f32));
-        std::memcpy(&this->vertexBuffer[firstVertex+i].z, vertex_pos + 8,  sizeof(f32));
-
-        if(this->useTexCoord){
             const u8* vertex_tex = base_tex + i * this->texCoordStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex + 0, sizeof(f32));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].v, vertex_tex + 4, sizeof(f32));
-        }else{
-            this->vertexBuffer[firstVertex+i].u = 0;
-            this->vertexBuffer[firstVertex+i].v = 0;
-        }
+            std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex, 2*sizeof(f32));
 
-        if(this->useDiffuse){
+            std::memset(&this->vertexBuffer[firstVertex+i].r, 0x0, 4*sizeof(u8));
+        }
+    }else{
+        for(int i = 0; i < count; i++){
+            const u8* vertex_pos = base_pos + i * this->vertexStride;
+            std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
+
+            std::memset(&this->vertexBuffer[firstVertex+i].u, 0x0, 2*sizeof(f32));
+
             const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse + 0,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].g, vertex_diffuse + 1,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].b, vertex_diffuse + 2,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].a, vertex_diffuse + 3,  sizeof(u8));
-        }else{
-            this->vertexBuffer[firstVertex+i].r = 0.0f;
-            this->vertexBuffer[firstVertex+i].g = 0.0f;
-            this->vertexBuffer[firstVertex+i].b = 0.0f;
-            this->vertexBuffer[firstVertex+i].a = 0.0f;               
+            std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
         }
     }
     this->vertexWriteOffset += count;
