@@ -70,7 +70,10 @@ GfxInterface *GfxCitro3d::Init(){
     self->aatarget = C3D_RenderTargetCreate(240 * 2, 400 * 2, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     self->aaXtarget = C3D_RenderTargetCreate(240 * 2, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     self->normaltarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+    self->righttarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
 
+
+    self->activetarget = self->normaltarget;
     // Set the game to run with no antialising by default
     // self->SetFullScreen(false);
 
@@ -188,7 +191,7 @@ GfxInterface *GfxCitro3d::Init(){
         self->SetFullScreen(true);
     }
 
-    self->antimode = NoAnti;
+    C3D_RenderTargetSetOutput(self->activetarget,GFX_TOP,GFX_LEFT,DISPLAY_TRANSFER_FLAGS);
 
     return self;
 }   
@@ -356,165 +359,15 @@ void GfxCitro3d::GetDepthRange(f32 *depthRange){
 }
 
 void GfxCitro3d::SetFullScreen(bool enable){
-    this->fullscreen = enable;
-    this->EnableAnti(this->antimode);
-}
-
-
-// Switch this to use a enum instead of a integer
-void GfxCitro3d::EnableAnti(AntiAliasingModes mode){
-
-    this->antimode = mode;
-
-    switch(this->antimode)
-    {
-        case(NoAnti):
-            this->resY = 400.0f;
-
-            if(this->fullscreen){
-                this->scalex = 0.625;
-                this->scaley = 0.5f;
-            }else{
-                this->scalex = 0.5f;
-                this->scaley = 0.5f;
-                this->screenOffset = 40.0f;
-            }
-
-            this->activetarget = this->normaltarget;
-
-            C3D_RenderTargetSetOutput(
-                this->activetarget,
-                GFX_TOP,
-                GFX_LEFT,
-                DISPLAY_TRANSFER_FLAGS
-            );
-            break;
-        case(Anti2x):
-            this->resY = 800.0f;
-
-            if(this->fullscreen){
-                this->scalex = 0.625 * 2;
-                this->scaley = 1.0f;
-            }else{
-                this->scalex = 1.0f;
-                this->scaley = 1.0f;
-                this->screenOffset = 80.0f;
-            }
-
-            this->activetarget = this->aatarget;
-
-            C3D_RenderTargetSetOutput(
-                this->activetarget,
-                GFX_TOP,
-                GFX_LEFT,
-                DISPLAY_TRANSFER_FLAG_ANTI
-            );
-            break;
-        case(Anti15x):
-            this->resY = 400.0f;
-
-            if(this->fullscreen){
-                this->scalex = 0.625;
-                this->scaley = 1.0f;
-            }else{
-                this->scalex = 0.5f;
-                this->scaley = 1.0f;
-                this->screenOffset = 40.0f;
-            }
-
-            this->activetarget = this->aaXtarget;
-
-            C3D_RenderTargetSetOutput(
-                this->activetarget,
-                GFX_TOP,
-                GFX_LEFT,
-                DISPLAY_TRANSFER_FLAG_ANTI_X
-            );
-            break;
-    }
-
-    // if(this->antimode==NoAnti){
-    //     this->anti = false;
-    //     this->resY = 400.0f;
-
-    //     if(this->fullscreen){
-    //         this->scalex = 0.625;
-    //         this->scaley = 0.5f;
-    //     }else{
-    //         this->scalex = 0.5f;
-    //         this->scaley = 0.5f;
-    //         this->screenOffset = 40.0f;
-    //     }
-
-    //     this->activetarget = this->normaltarget;
-
-    //     C3D_RenderTargetSetOutput(
-    //         this->activetarget,
-    //         GFX_TOP,
-    //         GFX_LEFT,
-    //         DISPLAY_TRANSFER_FLAGS
-    //     );
-    // }else if(this->antimode==1){
-    //     this->resY = 800.0f;
-
-    //     if(this->fullscreen){
-    //         this->scalex = 0.625 * 2;
-    //         this->scaley = 1.0f;
-    //     }else{
-    //         this->scalex = 1.0f;
-    //         this->scaley = 1.0f;
-    //         this->screenOffset = 80.0f;
-    //     }
-
-    //     this->activetarget = this->aatarget;
-
-    //     C3D_RenderTargetSetOutput(
-    //         this->activetarget,
-    //         GFX_TOP,
-    //         GFX_LEFT,
-    //         DISPLAY_TRANSFER_FLAG_ANTI
-    //     );
-    // }else if(this->antimode==2){
-    //     this->resY = 400.0f;
-
-    //     if(this->fullscreen){
-    //         this->scalex = 0.625;
-    //         this->scaley = 1.0f;
-    //     }else{
-    //         this->scalex = 0.5f;
-    //         this->scaley = 1.0f;
-    //         this->screenOffset = 40.0f;
-    //     }
-
-    //     this->activetarget = this->aaXtarget;
-
-    //     C3D_RenderTargetSetOutput(
-    //         this->activetarget,
-    //         GFX_TOP,
-    //         GFX_LEFT,
-    //         DISPLAY_TRANSFER_FLAG_ANTI_X
-    //     );
-    // }
-}
-
-void GfxCitro3d::ToggleAnti(){
-    // if(this->antimode==Anti15x){
-    //     this->EnableAnti(NoAnti);
-    // }else{
-    //     this->EnableAnti(this->antimode+1);
-    // }
-
-    switch (this->antimode)
-    {
-    case(NoAnti):
-        this->EnableAnti(Anti2x);
-        break;
-    case(Anti2x):
-        this->EnableAnti(Anti15x);
-        break;
-    case(Anti15x):
-        this->EnableAnti(NoAnti);
-        break;
+    if(enable){
+        this->scalex = 0.625;
+        this->scaley = 0.5f;
+        this->fullscreen = true;
+    }else{
+        this->scalex = 0.5f;
+        this->scaley = 0.5f;
+        this->fullscreen = false;
+        this->screenOffset = 40.0f;
     }
 }
 

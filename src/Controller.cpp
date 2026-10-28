@@ -400,7 +400,7 @@ u16 GetButtons_3DS()
     if (held & KEY_SELECT){
         //buttons |= TH_BUTTON_SKIP;
 
-        g_GfxBackend->ToggleAnti();
+        //g_GfxBackend->ToggleAnti();
 
         //Awful awful awful debounce, but for now it'll do
         svcSleepThread(1000000000);

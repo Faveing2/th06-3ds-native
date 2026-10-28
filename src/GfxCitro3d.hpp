@@ -75,9 +75,6 @@ struct GfxCitro3d : GfxInterface
 
     virtual float getVertexBufferUsage();
 
-    virtual void EnableAnti(AntiAliasingModes mode);
-    virtual void ToggleAnti();
-
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
     private:
@@ -162,6 +159,7 @@ struct GfxCitro3d : GfxInterface
         C3D_RenderTarget* aatarget;
         C3D_RenderTarget* aaXtarget;
         C3D_RenderTarget* normaltarget;
+        C3D_RenderTarget* righttarget;
         C3D_RenderTarget* activetarget;
 
         std::size_t vertexCapacity;
