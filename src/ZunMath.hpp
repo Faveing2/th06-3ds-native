@@ -6,6 +6,10 @@
 #include <cstring>
 #include <Citro3d.h>
 
+// Ya not really sure where to put this
+#define SLIDER_FACTOR 0.5f
+#define FOCAL_LENGTH 5.0f
+
 #ifndef __has_builtin
 #define __has_builtin(name) 0
 #endif
@@ -592,7 +596,6 @@ inline ZunMatrix perspectiveMatrixFromFOV(f32 verticalFOV, f32 aspectRatio, f32 
 // Sets matrix mode to projection and clobbers current matrix
 inline ZunMatrix perspectiveMatrixFromFOV_Left(f32 verticalFOV, f32 aspectRatio, f32 nearPlane, f32 farPlane)
 {
-
     // I believe the matrix this generates is not compatible with the way the PICA200 renders, it could be a clip space issue?
     // So citro3d has a helper function to generate the correct perspective matrix void Mtx_Persp(C3D_Mtx* mtx, float fovy, float aspect, float near, float far, bool isLeftHanded);
     // So the plan might be to use this to generate a correct perspective matrix, then turn it into a zun matrix and return that. So that the matrix sent to the Citro3d backend is correct. 
@@ -614,11 +617,13 @@ inline ZunMatrix perspectiveMatrixFromFOV_Left(f32 verticalFOV, f32 aspectRatio,
     std::memset(&correctionMatrix, 0, sizeof(correctionMatrix));
     std::memset(perspectiveMatrix.m, 0, sizeof(perspectiveMatrix.m));
 
-    float iod = 0.10f;
-    float focalLength = 5.0;
+    float iod = osGet3DSliderState() / SLIDER_FACTOR;
+    float focalLength = FOCAL_LENGTH;
 
     Mtx_PerspStereoTilt(&tempMtx, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, -iod, focalLength, true);
 
+
+    // These must be rotated by 90 degrees because Mtx_PerspStereoTilt takes into account the screen rotation, so the rotation of -90 degrees I do in the driver has to be reversed :)
     Mtx_Identity(&correctionMatrix);
     Mtx_RotateZ(
         &correctionMatrix,
@@ -681,11 +686,12 @@ inline ZunMatrix perspectiveMatrixFromFOV_Right(f32 verticalFOV, f32 aspectRatio
     std::memset(&correctionMatrix, 0, sizeof(correctionMatrix));
     std::memset(perspectiveMatrix.m, 0, sizeof(perspectiveMatrix.m));
 
-    float iod = 0.10f;
-    float focalLength = 5.0f;
+    float iod = osGet3DSliderState() / SLIDER_FACTOR;
+    float focalLength = FOCAL_LENGTH;
 
     Mtx_PerspStereoTilt(&tempMtx, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, iod, focalLength, true);
 
+    // These must be rotated by 90 degrees because Mtx_PerspStereoTilt takes into account the screen rotation, so the rotation of -90 degrees I do in the driver has to be reversed :)
     Mtx_Identity(&correctionMatrix);
     Mtx_RotateZ(
         &correctionMatrix,
@@ -722,6 +728,8 @@ inline ZunMatrix perspectiveMatrixFromFOV_Right(f32 verticalFOV, f32 aspectRatio
     return perspectiveMatrix;
 }
 ZunMatrix inverseViewportMatrix();
+ZunMatrix inverseViewportMatrixLeft();
+ZunMatrix inverseViewportMatrixRght();
 
 // Reimplementation of D3DXVec3Project. TODO: Replace if possible once port is working
 inline void projectVec3(ZunVec3 &out, const ZunVec3 &inVec, const ZunViewport &viewport, const ZunMatrix &projection,
