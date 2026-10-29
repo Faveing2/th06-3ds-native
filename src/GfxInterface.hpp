@@ -43,7 +43,9 @@ enum TransformMatrix
     MATRIX_MODEL,
     MATRIX_VIEW,
     MATRIX_PROJECTION,
-    MATRIX_TEXTURE
+    MATRIX_TEXTURE,
+    MATRIX_PROJECTION_LEFT,
+    MATRIX_PROJECTION_RIGHT
 };
 enum BlendMode
 {
@@ -160,6 +162,8 @@ struct GfxInterface
     virtual void ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pixels) = 0;
 
     virtual void Draw(PrimitiveType type, i32 start, i32 count) = 0;
+    virtual void Enable3d(bool enable, i32 strength) = 0;
+    virtual void Toggle3d() = 0;
     virtual void SwapBuffers() = 0;
 
     virtual void SetFullScreen(bool enable) = 0;

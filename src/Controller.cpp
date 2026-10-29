@@ -402,6 +402,8 @@ u16 GetButtons_3DS()
 
         //g_GfxBackend->ToggleAnti();
 
+        //g_GfxBackend->Toggle3d();
+
         //Awful awful awful debounce, but for now it'll do
         svcSleepThread(1000000000);
     }

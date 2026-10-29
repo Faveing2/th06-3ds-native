@@ -447,7 +447,12 @@ ZunResult GameWindow::InitD3dRendering()
     g_Supervisor.viewMatrix = viewMatrix;
 
     ZunMatrix perspectiveMatrix = perspectiveMatrixFromFOV(field_of_view_y, aspect_ratio, 100.0f, 10000.0f);
+    ZunMatrix perspectiveMatrixLeft = perspectiveMatrixFromFOV_Left(field_of_view_y, aspect_ratio, 100.0f, 10000.0f);
+    ZunMatrix perspectiveMatrixRight = perspectiveMatrixFromFOV_Right(field_of_view_y, aspect_ratio, 100.0f, 10000.0f);
+
     g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION, perspectiveMatrix);
+    g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION_LEFT, perspectiveMatrixLeft);
+    g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION_RIGHT,  perspectiveMatrixRight);
     g_Supervisor.projectionMatrix = perspectiveMatrix;
 
     //    D3DXMatrixPerspectiveFovLH(&g_Supervisor.projectionMatrix, field_of_view_y, aspect_ratio, 100.0, 10000.0);

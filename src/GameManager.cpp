@@ -530,7 +530,12 @@ void GameManager::SetupCameraStageBackground(f32 extraRenderDistance)
     g_GameManager.cameraDistance = ZUN_FABSF(cameraDistance);
 
     ZunMatrix perspectiveMatrix = perspectiveMatrixFromFOV(fov, aspectRatio, 100.0f, 10000.0f + extraRenderDistance);
+    ZunMatrix perspectiveMatrixLeft = perspectiveMatrixFromFOV_Left(fov, aspectRatio, 100.0f, 10000.0f + extraRenderDistance);
+    ZunMatrix perspectiveMatrixRight = perspectiveMatrixFromFOV_Right(fov, aspectRatio, 100.0f, 10000.0f + extraRenderDistance);
+
     g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION, perspectiveMatrix);
+    g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION_LEFT, perspectiveMatrixLeft);
+    g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION_RIGHT, perspectiveMatrixRight);
     g_Supervisor.projectionMatrix = perspectiveMatrix;
     return;
 }
@@ -577,7 +582,12 @@ void GameManager::SetupCamera(f32 extraRenderDistance)
     g_GameManager.cameraDistance = ZUN_FABSF(cameraDistance);
 
     ZunMatrix perspectiveMatrix = perspectiveMatrixFromFOV(fov, aspectRatio, 100.0f, 10000.0f + extraRenderDistance);
+    ZunMatrix perspectiveMatrixLeft = perspectiveMatrixFromFOV_Left(fov, aspectRatio, 100.0f, 10000.0f + extraRenderDistance);
+    ZunMatrix perspectiveMatrixRight = perspectiveMatrixFromFOV_Right(fov, aspectRatio, 100.0f, 10000.0f + extraRenderDistance);
+
     g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION, perspectiveMatrix);
+    g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION_LEFT, perspectiveMatrixLeft);
+    g_AnmManager->SetTransformMatrix(MATRIX_PROJECTION_RIGHT, perspectiveMatrixRight);
     g_Supervisor.projectionMatrix = perspectiveMatrix;
 
     return;

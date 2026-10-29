@@ -69,6 +69,8 @@ struct GfxCitro3d : GfxInterface
     virtual void ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pixels);
 
     virtual void Draw(PrimitiveType type, i32 start, i32 count);
+    virtual void Enable3d(bool enable, i32 strength);
+    virtual void Toggle3d();
     virtual void SwapBuffers();
 
     virtual void SetFullScreen(bool enable);
@@ -113,6 +115,8 @@ struct GfxCitro3d : GfxInterface
 
         bool useRhw = false;
 
+        bool use3d = false;
+
         bool first_draw=true;
 
         void *vertexData;
@@ -135,9 +139,13 @@ struct GfxCitro3d : GfxInterface
         C3D_Mtx viewMatrix;
         C3D_Mtx modelViewMatrix;;
         C3D_Mtx projectionMatrix;
+        C3D_Mtx projectionMatrixLeft;
+        C3D_Mtx projectionMatrixRight;
         C3D_Mtx textureMatrixMatrix;
         C3D_Mtx correctionMatrix;
         C3D_Mtx correctedMatrix;
+        C3D_Mtx correctedMatrixLeft;
+        C3D_Mtx correctedMatrixRight;
         C3D_Mtx scaleMatrix;
         C3D_Mtx rotationMatrix;
 
@@ -156,11 +164,9 @@ struct GfxCitro3d : GfxInterface
         f32 screenOffset = 40.0f;
         f32 resY = 400.0f;
 
-        C3D_RenderTarget* aatarget;
-        C3D_RenderTarget* aaXtarget;
-        C3D_RenderTarget* normaltarget;
-        C3D_RenderTarget* righttarget;
-        C3D_RenderTarget* activetarget;
+        C3D_RenderTarget* leftTarget;
+        C3D_RenderTarget* rightTarget;
+        C3D_RenderTarget* activeTarget;
 
         std::size_t vertexCapacity;
         i32 vertexCount;

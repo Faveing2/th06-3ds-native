@@ -829,6 +829,8 @@ void AnmManager::UpdateDirtyStates()
         case DIRTY_VIEW_MATRIX:
         case DIRTY_PROJECTION_MATRIX:
         case DIRTY_TEXTURE_MATRIX:
+        case DIRTY_PROJECTION_MATRIX_LEFT:
+        case DIRTY_PROJECTION_MATRIX_RIGHT:
             std::memcpy(&this->transformMatrices[currFlagIndex - DIRTY_MODEL_MATRIX],
                         &this->dirtyTransformMatrices[currFlagIndex - DIRTY_MODEL_MATRIX],
                         sizeof(*this->transformMatrices));

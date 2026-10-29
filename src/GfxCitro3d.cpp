@@ -62,20 +62,21 @@ GfxInterface *GfxCitro3d::Init(){
     gfxInitDefault();
 
     // Increased the CMD buffer size
-    C3D_Init(0x100000);
 
     consoleInit(GFX_BOTTOM, &bottomScreen);
     consoleSelect(&bottomScreen);
 
-    self->aatarget = C3D_RenderTargetCreate(240 * 2, 400 * 2, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
-    self->aaXtarget = C3D_RenderTargetCreate(240 * 2, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
-    self->normaltarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
-    self->righttarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+    C3D_Init(0x100000);
 
+    printf("Gfx Initializing");
 
-    self->activetarget = self->normaltarget;
-    // Set the game to run with no antialising by default
-    // self->SetFullScreen(false);
+    self->leftTarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+    self->rightTarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
+
+    C3D_RenderTargetSetOutput(self->leftTarget,GFX_TOP,GFX_LEFT,DISPLAY_TRANSFER_FLAGS);
+    C3D_RenderTargetSetOutput(self->rightTarget,GFX_TOP,GFX_RIGHT,DISPLAY_TRANSFER_FLAGS);   
+
+    gfxSet3D(false);
 
     // Create the vertex shader
     self->shader_dvlb = DVLB_ParseFile((u32*)ff_shbin, ff_shbin_size);
@@ -190,8 +191,6 @@ GfxInterface *GfxCitro3d::Init(){
     }else{
         self->SetFullScreen(true);
     }
-
-    C3D_RenderTargetSetOutput(self->activetarget,GFX_TOP,GFX_LEFT,DISPLAY_TRANSFER_FLAGS);
 
     return self;
 }   
@@ -328,6 +327,42 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             &this->correctedMatrix,
             &this->correctionMatrix,
             &this->projectionMatrix
+        );
+        break;
+    case MATRIX_PROJECTION_LEFT:
+        for (int i = 0; i < 4; i++)
+        {
+            // Using precalculated projection matrix
+            this->projectionMatrixLeft.r[i].x = matrix.m[0][i];
+            this->projectionMatrixLeft.r[i].y = matrix.m[1][i];
+            this->projectionMatrixLeft.r[i].z = matrix.m[2][i];
+            this->projectionMatrixLeft.r[i].w = matrix.m[3][i];
+
+            //printf("(%f,%f,%f,%f)\n", this->projectionMatrixLeft.r[i].x, this->projectionMatrixLeft.r[i].y, this->projectionMatrixLeft.r[i].z, this->projectionMatrixLeft.r[i].w); 
+        }
+
+        //Rotate the projection by 90 degrees
+        Mtx_Multiply(
+            &this->correctedMatrixLeft,
+            &this->correctionMatrix,
+            &this->projectionMatrixLeft
+        );
+        break;
+    case MATRIX_PROJECTION_RIGHT:
+        for (int i = 0; i < 4; i++)
+        {
+            // Using precalculated projection matrix
+            this->projectionMatrixRight.r[i].x = matrix.m[0][i];
+            this->projectionMatrixRight.r[i].y = matrix.m[1][i];
+            this->projectionMatrixRight.r[i].z = matrix.m[2][i];
+            this->projectionMatrixRight.r[i].w = matrix.m[3][i];
+        }
+
+        //Rotate the projection by 90 degrees
+        Mtx_Multiply(
+            &this->correctedMatrixRight,
+            &this->correctionMatrix,
+            &this->projectionMatrixRight
         );
         break;
     case MATRIX_TEXTURE:
@@ -521,9 +556,18 @@ void GfxCitro3d::Clear(u32 clearBits){
     if (clearBits & CLEAR_DEPTH_BUFFER)
         mask = (C3D_ClearBits)(mask | C3D_CLEAR_DEPTH);
     
-    C3D_RenderTargetClear(
-        this->activetarget,mask, this->C3D_clearcolor, this->C3D_cleardepth
-    );
+    if(this->use3d){
+        C3D_RenderTargetClear(
+            this->leftTarget,mask, this->C3D_clearcolor, this->C3D_cleardepth
+        );
+        C3D_RenderTargetClear(
+            this->rightTarget,mask, this->C3D_clearcolor, this->C3D_cleardepth
+        );
+    }else{
+        C3D_RenderTargetClear(
+            this->leftTarget,mask, this->C3D_clearcolor, this->C3D_cleardepth
+        );
+    }
 }
 
 void GfxCitro3d::DeleteTexture(GfxTextureHandle handle){
@@ -745,8 +789,34 @@ void GfxCitro3d::SwapBuffers(){
     C3D_FrameEnd(0);
 }
 
+void GfxCitro3d::Enable3d(bool enable, i32 strength){
+
+    if(enable == this->use3d){
+        return;
+    }
+
+    if(enable){
+        printf("using 3d\n");
+        gfxSet3D(true);
+        this->use3d = true;    
+    }else{
+        printf("Not using 3d\n");
+        gfxSet3D(false);
+        this->use3d = false;
+    }
+}
+
+void GfxCitro3d::Toggle3d(){
+    if(this->use3d){
+        this->Enable3d(true, 0);
+    }else{
+        this->Enable3d(false, 0);
+    }
+}
+
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
+
     GPU_Primitive_t C3DPrim;
 
     switch(type)
@@ -758,22 +828,6 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         C3DPrim = GPU_TRIANGLE_STRIP;
         break;
     }
-
-    if(this->first_draw){
-        C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-        C3D_FrameDrawOn(this->activetarget);
-        this->first_draw = false;
-        this->vertexWriteOffset = 0;
-        this->vertexCount = 0;
-    }
-
-    C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
-
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrix);
-
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
-
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
 
     u32 firstVertex = this->vertexWriteOffset;
 
@@ -802,8 +856,45 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
             std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
         }
     }
+
+    if(this->first_draw){
+
+        float slider = osGet3DSliderState();
+
+        if(slider > 0.0f){
+            this->Enable3d(true, 0);
+        }else{
+            this->Enable3d(false, 0);
+        }
+        C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+
+        this->first_draw = false;
+        this->vertexWriteOffset = 0;
+        this->vertexCount = 0;
+    }
+
+    C3D_FrameDrawOn(this->leftTarget);
+    C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
+
+    if(this->use3d){
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrixLeft);
+    }else{
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrix);
+    }
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
+    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
+    C3D_DrawArrays(C3DPrim, firstVertex, count); 
+
+    //If 3D is set then also render to the right eye
+    if(this->use3d){
+        C3D_FrameDrawOn(this->rightTarget);
+        C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrixRight);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
+        C3D_DrawArrays(C3DPrim, firstVertex, count); 
+    }
+
     this->vertexWriteOffset += count;
     this->vertexCount += count;
-    C3D_DrawArrays(C3DPrim, firstVertex, count); 
 }
-

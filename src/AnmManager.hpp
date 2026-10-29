@@ -115,6 +115,8 @@ enum DirtyRenderStateBitShifts
     DIRTY_VIEW_MATRIX = 7,
     DIRTY_PROJECTION_MATRIX = 8,
     DIRTY_TEXTURE_MATRIX = 9,
+    DIRTY_PROJECTION_MATRIX_LEFT = 10,
+    DIRTY_PROJECTION_MATRIX_RIGHT = 11
 };
 
 struct AnmRawSprite
@@ -309,6 +311,9 @@ struct AnmManager
             ZunMatrix inverseMatrix = inverseViewportMatrix();
 
             this->SetTransformMatrix(MATRIX_PROJECTION, inverseMatrix);
+            this->SetTransformMatrix(MATRIX_PROJECTION_LEFT, inverseMatrix);
+            this->SetTransformMatrix(MATRIX_PROJECTION_RIGHT, inverseMatrix);
+
 
             return;
         }
@@ -317,6 +322,8 @@ struct AnmManager
 
         this->SetTransformMatrix(MATRIX_VIEW, this->perspectiveMatrixBackup[MATRIX_VIEW]);
         this->SetTransformMatrix(MATRIX_PROJECTION, this->perspectiveMatrixBackup[MATRIX_PROJECTION]);
+        this->SetTransformMatrix(MATRIX_PROJECTION_LEFT, this->perspectiveMatrixBackup[MATRIX_PROJECTION_LEFT]);
+        this->SetTransformMatrix(MATRIX_PROJECTION_RIGHT, this->perspectiveMatrixBackup[MATRIX_PROJECTION_RIGHT]);
     }
 
     void SetFogRange(f32 nearPlane, f32 farPlane)
@@ -473,7 +480,7 @@ struct AnmManager
     VertexAttribArrayState attribArrays[3];
     ColorOp colorOps[2];
     ZunColor textureFactor;
-    ZunMatrix transformMatrices[4];
+    ZunMatrix transformMatrices[6];
 
     f32 dirtyFogNear;
     f32 dirtyFogFar;
@@ -484,9 +491,9 @@ struct AnmManager
     VertexAttribArrayState dirtyAttribArrays[3];
     ColorOp dirtyColorOps[2];
     ZunColor dirtytTextureFactor;
-    ZunMatrix dirtyTransformMatrices[4];
+    ZunMatrix dirtyTransformMatrices[6];
 
-    ZunMatrix perspectiveMatrixBackup[4]; // Replaces matrix stack use for orthographic mode
+    ZunMatrix perspectiveMatrixBackup[6]; // Replaces matrix stack use for orthographic mode
 };
 
 extern AnmManager *g_AnmManager;

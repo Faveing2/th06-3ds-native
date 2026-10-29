@@ -589,6 +589,138 @@ inline ZunMatrix perspectiveMatrixFromFOV(f32 verticalFOV, f32 aspectRatio, f32 
     return perspectiveMatrix;
 }
 
+// Sets matrix mode to projection and clobbers current matrix
+inline ZunMatrix perspectiveMatrixFromFOV_Left(f32 verticalFOV, f32 aspectRatio, f32 nearPlane, f32 farPlane)
+{
+
+    // I believe the matrix this generates is not compatible with the way the PICA200 renders, it could be a clip space issue?
+    // So citro3d has a helper function to generate the correct perspective matrix void Mtx_Persp(C3D_Mtx* mtx, float fovy, float aspect, float near, float far, bool isLeftHanded);
+    // So the plan might be to use this to generate a correct perspective matrix, then turn it into a zun matrix and return that. So that the matrix sent to the Citro3d backend is correct. 
+
+    // D3D has pixels at integer locations, but OpenGL uses half integer pixels. This may need correction
+    // https://www.slideshare.net/slideshow/opengl-32-and-more/2172343
+    // There are some other clip space differences between D3D and OpenGL, but they shouldn't matter for EoSD
+
+    // This should be uncommented if pixel off-by-one errors show up
+    // g_glFuncTable.glTranslatef(0.5f / GAME_WINDOW_WIDTH, 0.5f / GAME_WINDOW_HEIGHT, 0.0f);
+
+    ZunMatrix perspectiveMatrix;
+    C3D_Mtx picoPerspectiveMatrix;
+    C3D_Mtx tempMtx;
+    C3D_Mtx correctionMatrix;
+    
+    std::memset(&picoPerspectiveMatrix, 0, sizeof(picoPerspectiveMatrix));
+    std::memset(&tempMtx, 0, sizeof(tempMtx));
+    std::memset(&correctionMatrix, 0, sizeof(correctionMatrix));
+    std::memset(perspectiveMatrix.m, 0, sizeof(perspectiveMatrix.m));
+
+    float iod = 0.10f;
+    float focalLength = 5.0;
+
+    Mtx_PerspStereoTilt(&tempMtx, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, -iod, focalLength, true);
+
+    Mtx_Identity(&correctionMatrix);
+    Mtx_RotateZ(
+        &correctionMatrix,
+        M_PI / 2.0f,
+        false
+    );
+
+    Mtx_Multiply(
+        &picoPerspectiveMatrix,
+        &correctionMatrix,
+        &tempMtx
+    );
+
+    perspectiveMatrix.m[0][0] = picoPerspectiveMatrix.r[0].x;
+    perspectiveMatrix.m[0][1] = picoPerspectiveMatrix.r[1].x;
+    perspectiveMatrix.m[0][2] = picoPerspectiveMatrix.r[2].x;
+    perspectiveMatrix.m[0][3] = picoPerspectiveMatrix.r[3].x;
+
+    perspectiveMatrix.m[1][0] = picoPerspectiveMatrix.r[0].y;
+    perspectiveMatrix.m[1][1] = picoPerspectiveMatrix.r[1].y;
+    perspectiveMatrix.m[1][2] = picoPerspectiveMatrix.r[2].y;
+    perspectiveMatrix.m[1][3] = picoPerspectiveMatrix.r[3].y;
+
+    perspectiveMatrix.m[2][0] = picoPerspectiveMatrix.r[0].z;
+    perspectiveMatrix.m[2][1] = picoPerspectiveMatrix.r[1].z;
+    perspectiveMatrix.m[2][2] = picoPerspectiveMatrix.r[2].z;
+    perspectiveMatrix.m[2][3] = picoPerspectiveMatrix.r[3].z;
+
+    perspectiveMatrix.m[3][0] = picoPerspectiveMatrix.r[0].w;
+    perspectiveMatrix.m[3][1] = picoPerspectiveMatrix.r[1].w;
+    perspectiveMatrix.m[3][2] = picoPerspectiveMatrix.r[2].w;
+    perspectiveMatrix.m[3][3] = picoPerspectiveMatrix.r[3].w;
+
+    return perspectiveMatrix;
+}
+
+
+// Sets matrix mode to projection and clobbers current matrix
+inline ZunMatrix perspectiveMatrixFromFOV_Right(f32 verticalFOV, f32 aspectRatio, f32 nearPlane, f32 farPlane)
+{
+
+    // I believe the matrix this generates is not compatible with the way the PICA200 renders, it could be a clip space issue?
+    // So citro3d has a helper function to generate the correct perspective matrix void Mtx_Persp(C3D_Mtx* mtx, float fovy, float aspect, float near, float far, bool isLeftHanded);
+    // So the plan might be to use this to generate a correct perspective matrix, then turn it into a zun matrix and return that. So that the matrix sent to the Citro3d backend is correct. 
+
+    // D3D has pixels at integer locations, but OpenGL uses half integer pixels. This may need correction
+    // https://www.slideshare.net/slideshow/opengl-32-and-more/2172343
+    // There are some other clip space differences between D3D and OpenGL, but they shouldn't matter for EoSD
+
+    // This should be uncommented if pixel off-by-one errors show up
+    // g_glFuncTable.glTranslatef(0.5f / GAME_WINDOW_WIDTH, 0.5f / GAME_WINDOW_HEIGHT, 0.0f);
+
+    ZunMatrix perspectiveMatrix;
+    C3D_Mtx picoPerspectiveMatrix;
+    C3D_Mtx tempMtx;
+    C3D_Mtx correctionMatrix;
+    
+    std::memset(&picoPerspectiveMatrix, 0, sizeof(picoPerspectiveMatrix));
+    std::memset(&tempMtx, 0, sizeof(tempMtx));
+    std::memset(&correctionMatrix, 0, sizeof(correctionMatrix));
+    std::memset(perspectiveMatrix.m, 0, sizeof(perspectiveMatrix.m));
+
+    float iod = 0.10f;
+    float focalLength = 5.0f;
+
+    Mtx_PerspStereoTilt(&tempMtx, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, iod, focalLength, true);
+
+    Mtx_Identity(&correctionMatrix);
+    Mtx_RotateZ(
+        &correctionMatrix,
+        M_PI / 2.0f,
+        false
+    );
+
+    Mtx_Multiply(
+        &picoPerspectiveMatrix,
+        &correctionMatrix,
+        &tempMtx
+    );
+
+    perspectiveMatrix.m[0][0] = picoPerspectiveMatrix.r[0].x;
+    perspectiveMatrix.m[0][1] = picoPerspectiveMatrix.r[1].x;
+    perspectiveMatrix.m[0][2] = picoPerspectiveMatrix.r[2].x;
+    perspectiveMatrix.m[0][3] = picoPerspectiveMatrix.r[3].x;
+
+    perspectiveMatrix.m[1][0] = picoPerspectiveMatrix.r[0].y;
+    perspectiveMatrix.m[1][1] = picoPerspectiveMatrix.r[1].y;
+    perspectiveMatrix.m[1][2] = picoPerspectiveMatrix.r[2].y;
+    perspectiveMatrix.m[1][3] = picoPerspectiveMatrix.r[3].y;
+
+    perspectiveMatrix.m[2][0] = picoPerspectiveMatrix.r[0].z;
+    perspectiveMatrix.m[2][1] = picoPerspectiveMatrix.r[1].z;
+    perspectiveMatrix.m[2][2] = picoPerspectiveMatrix.r[2].z;
+    perspectiveMatrix.m[2][3] = picoPerspectiveMatrix.r[3].z;
+
+    perspectiveMatrix.m[3][0] = picoPerspectiveMatrix.r[0].w;
+    perspectiveMatrix.m[3][1] = picoPerspectiveMatrix.r[1].w;
+    perspectiveMatrix.m[3][2] = picoPerspectiveMatrix.r[2].w;
+    perspectiveMatrix.m[3][3] = picoPerspectiveMatrix.r[3].w;
+
+    return perspectiveMatrix;
+}
 ZunMatrix inverseViewportMatrix();
 
 // Reimplementation of D3DXVec3Project. TODO: Replace if possible once port is working
