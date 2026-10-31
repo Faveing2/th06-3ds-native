@@ -51,7 +51,6 @@ make
 ```
 # TODO
 - Implement linear fog rendering
-- Stereoscopic 3d rendering 
 
 
 # Credits
