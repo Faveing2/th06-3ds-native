@@ -7,7 +7,7 @@
 #include <Citro3d.h>
 
 // Ya not really sure where to put this
-#define SLIDER_FACTOR 0.5f
+#define SLIDER_FACTOR 5.0f
 #define FOCAL_LENGTH 5.0f
 
 #ifndef __has_builtin
@@ -729,7 +729,7 @@ inline ZunMatrix perspectiveMatrixFromFOV_Right(f32 verticalFOV, f32 aspectRatio
 }
 ZunMatrix inverseViewportMatrix();
 ZunMatrix inverseViewportMatrixLeft();
-ZunMatrix inverseViewportMatrixRght();
+ZunMatrix inverseViewportMatrixRight();
 
 // Reimplementation of D3DXVec3Project. TODO: Replace if possible once port is working
 inline void projectVec3(ZunVec3 &out, const ZunVec3 &inVec, const ZunViewport &viewport, const ZunMatrix &projection,

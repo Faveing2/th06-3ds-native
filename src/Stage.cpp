@@ -290,7 +290,7 @@ ChainCallbackResult Stage::OnDrawLowPrio(Stage *stage)
         {
             g_AnmManager->SetAndExecuteScriptIdx(&stage->spellcardBackground, ANM_SCRIPT_EFFECTS_SPELLCARD_BACKGROUND);
         }
-        g_AnmManager->Draw(&stage->spellcardBackground);
+        g_AnmManager->Draw(&stage->spellcardBackground, true);
     }
     g_AnmManager->FlushVertexBuffer();
     g_Supervisor.viewport.minZ = 0.0;

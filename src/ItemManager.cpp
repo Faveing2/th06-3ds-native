@@ -391,7 +391,7 @@ void ItemManager::OnDraw()
                 curItem->sprite.color = COLOR_WHITE;
             }
         }
-        g_AnmManager->DrawNoRotation(&curItem->sprite);
+        g_AnmManager->DrawNoRotation(&curItem->sprite, true);
     }
     return;
 }

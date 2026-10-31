@@ -746,6 +746,7 @@ void AnmManager::UpdateDirtyStates()
 
         // This would all be nicer if the enum was flag values rather than indices,
         //   but compilers just aren't able to deal with that in the switch statement :/
+
         switch (currFlagIndex)
         {
         case DIRTY_FOG:
@@ -840,7 +841,7 @@ void AnmManager::UpdateDirtyStates()
     }
 }
 
-ZunResult AnmManager::DrawOrthographic(const AnmVm *vm, bool roundToPixel)
+ZunResult AnmManager::DrawOrthographic(const AnmVm *vm, bool roundToPixel, bool offset3d)
 {
     float triangleX1, triangleX2, triangleY1, triangleY2;
     if (roundToPixel)
@@ -910,7 +911,7 @@ ZunResult AnmManager::DrawOrthographic(const AnmVm *vm, bool roundToPixel)
 
     this->SetRenderStateForVm(vm);
 
-    this->SetProjectionMode(PROJECTION_MODE_ORTHOGRAPHIC);
+    this->SetProjectionMode(PROJECTION_MODE_ORTHOGRAPHIC, offset3d);
 
     //    if (roundToPixel)
     //    {
@@ -1013,7 +1014,7 @@ ZunResult AnmManager::AddSpriteToDrawBuffer(VertexTex1Xyzrhw *vertices)
     return ZUN_SUCCESS;
 }
 
-ZunResult AnmManager::DrawNoRotation(const AnmVm *vm)
+ZunResult AnmManager::DrawNoRotation(const AnmVm *vm, bool offset3d)
 {
     float fVar2;
     float fVar3;
@@ -1054,7 +1055,7 @@ ZunResult AnmManager::DrawNoRotation(const AnmVm *vm)
         g_PrimitivesToDrawVertexBuf[2].position.y = g_PrimitivesToDrawVertexBuf[3].position.y =
             fVar3 + vm->pos.y + fVar3;
     }
-    return this->DrawOrthographic(vm, true);
+    return this->DrawOrthographic(vm, true, offset3d);
 }
 
 void AnmManager::TranslateRotation(VertexTex1Xyzrhw *param_1, f32 x, f32 y, f32 sine, f32 cosine, f32 xOffset,
@@ -1065,7 +1066,7 @@ void AnmManager::TranslateRotation(VertexTex1Xyzrhw *param_1, f32 x, f32 y, f32 
     return;
 }
 
-ZunResult AnmManager::Draw(const AnmVm *vm)
+ZunResult AnmManager::Draw(const AnmVm *vm, bool offset3d)
 {
     f32 zSine;
     f32 zCosine;
@@ -1077,7 +1078,7 @@ ZunResult AnmManager::Draw(const AnmVm *vm)
 
     if (vm->rotation.z == 0.0f)
     {
-        return this->DrawNoRotation(vm);
+        return this->DrawNoRotation(vm, offset3d);
     }
     if (vm->flags.isVisible == 0)
     {
@@ -1121,7 +1122,7 @@ ZunResult AnmManager::Draw(const AnmVm *vm)
         g_PrimitivesToDrawVertexBuf[2].position.y += spriteYCenter;
         g_PrimitivesToDrawVertexBuf[3].position.y += spriteYCenter;
     }
-    return this->DrawOrthographic(vm, false);
+    return this->DrawOrthographic(vm, false, offset3d);
 }
 
 ZunResult AnmManager::DrawFacingCamera(const AnmVm *vm)
@@ -1169,7 +1170,7 @@ ZunResult AnmManager::DrawFacingCamera(const AnmVm *vm)
     return this->DrawOrthographic(vm, false);
 }
 
-ZunResult AnmManager::Draw3(const AnmVm *vm)
+ZunResult AnmManager::Draw3(const AnmVm *vm, bool offset3d)
 {
     ZunMatrix worldTransformMatrix;
     ZunMatrix rotationMatrix;
@@ -1318,7 +1319,7 @@ ZunResult AnmManager::Draw3(const AnmVm *vm)
     return ZUN_SUCCESS;
 }
 
-ZunResult AnmManager::Draw2(const AnmVm *vm)
+ZunResult AnmManager::Draw2(const AnmVm *vm,bool offset3d)
 {
     ZunMatrix worldTransformMatrix;
     ZunMatrix unusedMatrix;
@@ -1335,7 +1336,7 @@ ZunResult AnmManager::Draw2(const AnmVm *vm)
 
     if (vm->rotation.x != 0 || vm->rotation.y != 0 || vm->rotation.z != 0)
     {
-        return this->Draw3(vm);
+        return this->Draw3(vm, offset3d);
     }
 
     if (vm->color == 0)
@@ -2177,7 +2178,7 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
 
     fullscreenViewport.Set();
 
-    this->SetProjectionMode(PROJECTION_MODE_ORTHOGRAPHIC);
+    this->SetProjectionMode(PROJECTION_MODE_ORTHOGRAPHIC, false);
 
     //CreateTextureObject();
 

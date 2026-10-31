@@ -286,7 +286,7 @@ struct AnmManager
         this->currentSprite = sprite;
     }
 
-    void SetProjectionMode(ProjectionMode projectionMode)
+    void SetProjectionMode(ProjectionMode projectionMode, bool offset3d = false)
     {
         if (this->projectionMode == projectionMode)
         {
@@ -309,11 +309,20 @@ struct AnmManager
             this->SetTransformMatrix(MATRIX_TEXTURE, identityMatrix);
 
             ZunMatrix inverseMatrix = inverseViewportMatrix();
+            ZunMatrix inverseMatrixLeft = inverseViewportMatrixLeft();
+            ZunMatrix inverseMatrixRight = inverseViewportMatrixRight();
 
             this->SetTransformMatrix(MATRIX_PROJECTION, inverseMatrix);
-            this->SetTransformMatrix(MATRIX_PROJECTION_LEFT, inverseMatrix);
-            this->SetTransformMatrix(MATRIX_PROJECTION_RIGHT, inverseMatrix);
 
+            if(offset3d){
+                //this->SetTransformMatrix(MATRIX_PROJECTION, inverseMatrix);
+                this->SetTransformMatrix(MATRIX_PROJECTION_LEFT, inverseMatrixLeft);
+                this->SetTransformMatrix(MATRIX_PROJECTION_RIGHT, inverseMatrixRight);
+            }else{
+                //this->SetTransformMatrix(MATRIX_PROJECTION, inverseMatrix);
+                this->SetTransformMatrix(MATRIX_PROJECTION_LEFT, inverseMatrix);
+                this->SetTransformMatrix(MATRIX_PROJECTION_RIGHT, inverseMatrix);    
+            }
 
             return;
         }
@@ -381,17 +390,17 @@ struct AnmManager
     }
 
     i32 ExecuteScript(AnmVm *vm);
-    ZunResult Draw(const AnmVm *vm);
+    ZunResult Draw(const AnmVm *vm, bool offset3d = false);
     void DrawTextToSprite(u32 spriteDstIndex, i32 xPos, i32 yPos, i32 spriteWidth, i32 spriteHeight, i32 fontWidth,
                           i32 fontHeight, ZunColor textColor, ZunColor shadowColor, const char *strToPrint);
     void DrawStringFormat(AnmVm *vm, ZunColor textColor, ZunColor shadowColor, const char *fmt, ...);
     void DrawStringFormat2(AnmVm *vm, ZunColor textColor, ZunColor shadowColor, const char *fmt, ...);
     void DrawVmTextFmt(AnmVm *vm, ZunColor textColor, ZunColor shadowColor, const char *fmt, ...);
-    ZunResult DrawNoRotation(const AnmVm *vm);
-    ZunResult DrawOrthographic(const AnmVm *vm, bool roundToPixel);
+    ZunResult DrawNoRotation(const AnmVm *vm, bool offset3d = false);
+    ZunResult DrawOrthographic(const AnmVm *vm, bool roundToPixel, bool offset3d = false);
     ZunResult DrawFacingCamera(const AnmVm *vm);
-    ZunResult Draw2(const AnmVm *vm);
-    ZunResult Draw3(const AnmVm *vm);
+    ZunResult Draw2(const AnmVm *vm, bool offset3d = false);
+    ZunResult Draw3(const AnmVm *vm, bool offset3d = false);
 
     void LoadSprite(u32 spriteIdx, const AnmLoadedSprite *sprite);
     ZunResult SetActiveSprite(AnmVm *vm, u32 spriteIdx);

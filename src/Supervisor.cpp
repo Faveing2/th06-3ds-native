@@ -585,6 +585,8 @@ void Supervisor::DrawBufferUsage()
     static u32 g_LastTime = SDL_GetTicks();
     static char DrawBufferUsageBuffer[256];
     static char VertexBufferUsageBuffer[256];
+    const u32 appUsed = osGetMemRegionFree(MEMREGION_APPLICATION);
+    const u32 linearFree = linearSpaceFree();
 
     curTime = SDL_GetTicks();
     g_NumFramesSinceLastTime = g_NumFramesSinceLastTime + 1 + (u32)g_Supervisor.cfg.frameskipConfig;
@@ -593,8 +595,8 @@ void Supervisor::DrawBufferUsage()
         elapsed = (curTime - g_LastTime) / 1000.f;
         g_LastTime = curTime;
         g_NumFramesSinceLastTime = 0;
-        sprintf(DrawBufferUsageBuffer, "Buffer Usage: %0.1f", C3D_GetCmdBufUsage() * 100.0f);
-        sprintf(VertexBufferUsageBuffer, "Vertex Usage: %0.1f", g_GfxBackend->getVertexBufferUsage() * 100.0f);
+        sprintf(DrawBufferUsageBuffer, "Buffer Usage: %0.1f, Linear Free: %lu", C3D_GetCmdBufUsage() * 100.0f, (unsigned long)(linearFree / 1024));
+        sprintf(VertexBufferUsageBuffer, "Vertex Usage: %0.1f, Memory: %lu KB\n", g_GfxBackend->getVertexBufferUsage() * 100.0f, (unsigned long)(appUsed / 1024));
     }
     if (!g_Supervisor.isInEnding)
     {

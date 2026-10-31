@@ -398,12 +398,11 @@ u16 GetButtons_3DS()
         buttons |= TH_BUTTON_MENU;
 
     if (held & KEY_SELECT){
-        //buttons |= TH_BUTTON_SKIP;
-
-        //g_GfxBackend->ToggleAnti();
-
-        //g_GfxBackend->Toggle3d();
-
+        if(g_Supervisor.enableDebug){
+            g_Supervisor.enableDebug = false;
+        }else{
+            g_Supervisor.enableDebug = true;
+        }
         //Awful awful awful debounce, but for now it'll do
         svcSleepThread(1000000000);
     }

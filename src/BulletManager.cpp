@@ -1291,8 +1291,9 @@ void BulletManager::DrawBullet(Bullet *bullet)
     {
         anmVm->rotation.z = (ZUN_PI / 2.0f) - bullet->angle;
     }
-
-    g_AnmManager->Draw2(anmVm);
+    // What if it just always uses draw?
+    g_AnmManager->Draw(anmVm, true);
+    //g_AnmManager->Draw2(anmVm, true);
 }
 
 void BulletManager::DrawBulletNoHwVertex(Bullet *bullet)
@@ -1328,7 +1329,7 @@ void BulletManager::DrawBulletNoHwVertex(Bullet *bullet)
         anmVm->rotation.z = (ZUN_PI / 2.0f) - bullet->angle;
     }
 
-    g_AnmManager->Draw(anmVm);
+    g_AnmManager->Draw(anmVm, true);
 }
 
 ZunResult BulletManager::AddedCallback(BulletManager *mgr)

@@ -597,7 +597,7 @@ ChainCallbackResult Player::OnDrawHighPrio(Player *p)
     p->playerSprite.pos.z = 0.49;
     if (!g_GameManager.isInRetryMenu)
     {
-        g_AnmManager->DrawNoRotation(&p->playerSprite);
+        g_AnmManager->DrawNoRotation(&p->playerSprite, true);
         if (p->orbState != ORB_HIDDEN &&
             (p->playerState == PLAYER_STATE_ALIVE || p->playerState == PLAYER_STATE_INVULNERABLE))
         {
@@ -613,8 +613,8 @@ ChainCallbackResult Player::OnDrawHighPrio(Player *p)
             *y2 += g_GameManager.arcadeRegionTopLeftPos.y;
             p->orbsSprite[0].pos.z = 0.491;
             p->orbsSprite[1].pos.z = 0.491;
-            g_AnmManager->Draw(&p->orbsSprite[0]);
-            g_AnmManager->Draw(&p->orbsSprite[1]);
+            g_AnmManager->Draw(&p->orbsSprite[0], true);
+            g_AnmManager->Draw(&p->orbsSprite[1], true);
         }
     }
     return CHAIN_CALLBACK_RESULT_CONTINUE;

@@ -9,6 +9,8 @@
 #include "ZunMath.hpp"
 #include "GameWindow.hpp"
 
+#define PIXEL_OFFSET 22.0f
+
 void ZunViewport::Set() const
 {
     g_GfxBackend->SetViewport(this->x * WIDTH_RESOLUTION_SCALE + VIEWPORT_OFF_X,
@@ -100,9 +102,16 @@ ZunMatrix inverseViewportMatrixLeft()
     //   Graphical output should really be checked thoroughly to make sure nothing (especially in the 3D draw functions)
     //   ends up a half pixel off.
 
+    f32 separationPixels = 12.0f * osGet3DSliderState();
+
+    // Since the matrix maps viewport coordinates to NDC:
+    f32 ndcShift = separationPixels / 400.0f;
+
     inverseMatrix.Translate(-1.0f, 1.0f, -1.0f);
     inverseMatrix.Scale(1.0f / (viewport.width / 2.0f), -1.0f / (viewport.height / 2.0f), 2.0f);
     inverseMatrix.Translate(-viewport.x, -viewport.y, 0.0f);
+
+    inverseMatrix.m[3][0] += -ndcShift;
 
     g_GfxBackend->SetDepthRange(0.0f, 1.0f);
 
@@ -133,9 +142,16 @@ ZunMatrix inverseViewportMatrixRight()
     //   Graphical output should really be checked thoroughly to make sure nothing (especially in the 3D draw functions)
     //   ends up a half pixel off.
 
+    f32 separationPixels = PIXEL_OFFSET * osGet3DSliderState();
+
+    // Since the matrix maps viewport coordinates to NDC:
+    f32 ndcShift = separationPixels / 400.0f;
+
     inverseMatrix.Translate(-1.0f, 1.0f, -1.0f);
     inverseMatrix.Scale(1.0f / (viewport.width / 2.0f), -1.0f / (viewport.height / 2.0f), 2.0f);
     inverseMatrix.Translate(-viewport.x, -viewport.y, 0.0f);
+
+    inverseMatrix.m[3][0]  += ndcShift;
 
     g_GfxBackend->SetDepthRange(0.0f, 1.0f);
 

@@ -61,14 +61,10 @@ GfxInterface *GfxCitro3d::Init(){
 
     gfxInitDefault();
 
-    // Increased the CMD buffer size
-
     consoleInit(GFX_BOTTOM, &bottomScreen);
     consoleSelect(&bottomScreen);
 
     C3D_Init(0x100000);
-
-    printf("Gfx Initializing");
 
     self->leftTarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     self->rightTarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
@@ -329,6 +325,15 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             &this->projectionMatrix
         );
         break;
+    case MATRIX_TEXTURE:
+        for (int i = 0; i < 4; i++)
+        {
+            this->textureMatrixMatrix.r[i].x = matrix.m[0][i];
+            this->textureMatrixMatrix.r[i].y = matrix.m[1][i];
+            this->textureMatrixMatrix.r[i].z = matrix.m[2][i];
+            this->textureMatrixMatrix.r[i].w = matrix.m[3][i];
+        }
+        break;
     case MATRIX_PROJECTION_LEFT:
         for (int i = 0; i < 4; i++)
         {
@@ -364,15 +369,6 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
             &this->correctionMatrix,
             &this->projectionMatrixRight
         );
-        break;
-    case MATRIX_TEXTURE:
-        for (int i = 0; i < 4; i++)
-        {
-            this->textureMatrixMatrix.r[i].x = matrix.m[0][i];
-            this->textureMatrixMatrix.r[i].y = matrix.m[1][i];
-            this->textureMatrixMatrix.r[i].z = matrix.m[2][i];
-            this->textureMatrixMatrix.r[i].w = matrix.m[3][i];
-        }
         break;
     }
 }
@@ -751,7 +747,7 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
             textureFormat
         );
 
-        //C3D_TexDelete(&this->boundTexture3ds->texObject);
+        C3D_TexDelete(&this->boundTexture3ds->texObject);
 
         C3D_TexInit(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
         C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
@@ -796,11 +792,9 @@ void GfxCitro3d::Enable3d(bool enable, i32 strength){
     }
 
     if(enable){
-        printf("using 3d\n");
         gfxSet3D(true);
         this->use3d = true;    
     }else{
-        printf("Not using 3d\n");
         gfxSet3D(false);
         this->use3d = false;
     }
@@ -829,34 +823,6 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         break;
     }
 
-    u32 firstVertex = this->vertexWriteOffset;
-
-    const u8* base_pos = (const u8*)(this->vertexData);
-    const u8* base_tex = (const u8*)(this->texCoordData);
-    const u8* base_diffuse = (const u8*)(this->diffuseData);
-
-    if(this->useTexCoord){
-        for(int i = 0; i < count; i++){
-            const u8* vertex_pos = base_pos + i * this->vertexStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
-
-            const u8* vertex_tex = base_tex + i * this->texCoordStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex, 2*sizeof(f32));
-
-            std::memset(&this->vertexBuffer[firstVertex+i].r, 0x0, 4*sizeof(u8));
-        }
-    }else{
-        for(int i = 0; i < count; i++){
-            const u8* vertex_pos = base_pos + i * this->vertexStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
-
-            std::memset(&this->vertexBuffer[firstVertex+i].u, 0x0, 2*sizeof(f32));
-
-            const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
-        }
-    }
-
     if(this->first_draw){
 
         float slider = osGet3DSliderState();
@@ -872,6 +838,46 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         this->vertexWriteOffset = 0;
         this->vertexCount = 0;
     }
+
+    u32 firstVertex = this->vertexWriteOffset;
+
+    const u8* base_pos = static_cast<const u8*>(this->vertexData);
+    const u8* base_tex = static_cast<const u8*>(this->texCoordData);
+    const u8* base_diffuse = static_cast<const u8*>(this->diffuseData);
+
+    for(int i = 0; i < count; i++){
+
+        const u8* vertex_pos = base_pos + i * this->vertexStride;
+
+        std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos + 0,  sizeof(f32));
+        std::memcpy(&this->vertexBuffer[firstVertex+i].y, vertex_pos + 4,  sizeof(f32));
+        std::memcpy(&this->vertexBuffer[firstVertex+i].z, vertex_pos + 8,  sizeof(f32));
+
+        if(this->useTexCoord){
+            const u8* vertex_tex = base_tex + i * this->texCoordStride;
+            std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex + 0, sizeof(f32));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].v, vertex_tex + 4, sizeof(f32));
+        }else{
+            this->vertexBuffer[firstVertex+i].u = 0;
+            this->vertexBuffer[firstVertex+i].v = 0;
+        }
+
+        if(this->useDiffuse){
+            const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
+            std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse + 0,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].g, vertex_diffuse + 1,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].b, vertex_diffuse + 2,  sizeof(u8));
+            std::memcpy(&this->vertexBuffer[firstVertex+i].a, vertex_diffuse + 3,  sizeof(u8));
+        }else{
+            this->vertexBuffer[firstVertex+i].r = 0.0f;
+            this->vertexBuffer[firstVertex+i].g = 0.0f;
+            this->vertexBuffer[firstVertex+i].b = 0.0f;
+            this->vertexBuffer[firstVertex+i].a = 0.0f;               
+        }
+    }
+
+    this->vertexWriteOffset += count;
+    this->vertexCount += count;
 
     C3D_FrameDrawOn(this->leftTarget);
     C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
@@ -894,7 +900,4 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
         C3D_DrawArrays(C3DPrim, firstVertex, count); 
     }
-
-    this->vertexWriteOffset += count;
-    this->vertexCount += count;
 }
