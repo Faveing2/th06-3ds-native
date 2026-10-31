@@ -21,10 +21,7 @@ Download and install the CIA/3dsx from the releases section or scan this QR code
 # Features
 
 - Switch between 5:3 and 4:3 aspect ratio using display mode in options.
-- Antialiasing: Pressing select will switch between the 3 antialiasing modes
-    - Mode 0: No antialiasing (Default)
-    - Mode 1: 2x antialiasing (Worst performance)
-    - Mode 2: 1.5x antialiasing (A good balance of visuals and performance)
+- 3D render support
 
 # Building
 
