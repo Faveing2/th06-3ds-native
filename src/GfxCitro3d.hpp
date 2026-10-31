@@ -69,8 +69,7 @@ struct GfxCitro3d : GfxInterface
     virtual void ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pixels);
 
     virtual void Draw(PrimitiveType type, i32 start, i32 count);
-    virtual void Enable3d(bool enable, i32 strength);
-    virtual void Toggle3d();
+    virtual void Enable3d(bool enable);
     virtual void SwapBuffers();
 
     virtual void SetFullScreen(bool enable);
@@ -80,11 +79,6 @@ struct GfxCitro3d : GfxInterface
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
     private:
-        ZunMatrix model;
-        ZunMatrix view;
-        ZunMatrix projection;
-        ZunMatrix textureMatrix;
-
         std::vector<std::unique_ptr<Texture3ds>> textures3ds;
         std::vector<u32> freeTextures3ds;
 
@@ -98,8 +92,6 @@ struct GfxCitro3d : GfxInterface
         u32 C3D_clearcolor = 0x00000000;
         u32 C3D_cleardepth = 0xFFFFFF;
 
-        C3D_RenderTarget* target;
-
         bool useTexCoord = false;
         bool useDiffuse = false;
 
@@ -109,14 +101,8 @@ struct GfxCitro3d : GfxInterface
 
         f32 depthNear3ds, depthFar3ds;
         i32 viewport3ds[4];
-        float position[3];
-        float texcoord[2];
-        u8 diffuse[4];
-
-        bool useRhw = false;
 
         bool use3d = false;
-
         bool first_draw=true;
 
         void *vertexData;
@@ -126,28 +112,17 @@ struct GfxCitro3d : GfxInterface
         void *diffuseData;
         std::size_t diffuseStride;
 
-        float* vbo_data_pos;
-        float* vbo_data_texPos;
-        u8*    vbo_data_diffuse;
-
         Vertex3DS* vertexBuffer;
         C3D_BufInfo* vertexBufferInfo; 
 
         u32 vertexWriteOffset;
 
-        C3D_Mtx modelMatrix;
-        C3D_Mtx viewMatrix;
         C3D_Mtx modelViewMatrix;;
+        C3D_Mtx textureMatrixMatrix;
+        C3D_Mtx rotationMatrix;
         C3D_Mtx projectionMatrix;
         C3D_Mtx projectionMatrixLeft;
         C3D_Mtx projectionMatrixRight;
-        C3D_Mtx textureMatrixMatrix;
-        C3D_Mtx correctionMatrix;
-        C3D_Mtx correctedMatrix;
-        C3D_Mtx correctedMatrixLeft;
-        C3D_Mtx correctedMatrixRight;
-        C3D_Mtx scaleMatrix;
-        C3D_Mtx rotationMatrix;
 
         f32 targetY = 0.0f;
         f32 targetX = 0.0f;
@@ -159,14 +134,11 @@ struct GfxCitro3d : GfxInterface
         C3D_FogLut fog_Lut;
 
         bool fullscreen = true;
-        bool anti = false;
-        AntiAliasingModes antimode = NoAnti;
         f32 screenOffset = 40.0f;
         f32 resY = 400.0f;
 
         C3D_RenderTarget* leftTarget;
         C3D_RenderTarget* rightTarget;
-        C3D_RenderTarget* activeTarget;
 
         std::size_t vertexCapacity;
         i32 vertexCount;

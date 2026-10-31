@@ -25,7 +25,6 @@
 // Defines a fixed sized vertex buffer. Surely 20000 verticies will be enough :) This is 5.7MB of ram, should probably make this a dynamically allocated array probably
 #define MAX_VERTICES 20000
 
-static void* vbo_data;
 static PrintConsole bottomScreen;
 
 #define POSITION_ATTRIBUTE_INDEX 0
@@ -64,7 +63,7 @@ GfxInterface *GfxCitro3d::Init(){
     consoleInit(GFX_BOTTOM, &bottomScreen);
     consoleSelect(&bottomScreen);
 
-    C3D_Init(0x100000);
+    C3D_Init(0x150000);
 
     self->leftTarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
     self->rightTarget = C3D_RenderTargetCreate(240, 400, GPU_RB_RGBA8, GPU_RB_DEPTH24_STENCIL8);
@@ -86,8 +85,6 @@ GfxInterface *GfxCitro3d::Init(){
     self->uLoc_modelView = shaderInstanceGetUniformLocation(self->program.vertexShader, "modelView");
     self->uLoc_textureMatrix = shaderInstanceGetUniformLocation(self->program.vertexShader, "textureMatrix");
 
-    Mtx_Identity(&self->modelMatrix);
-    Mtx_Identity(&self->viewMatrix);
     Mtx_Identity(&self->projectionMatrix);
     Mtx_Identity(&self->textureMatrixMatrix);
     Mtx_Identity(&self->modelViewMatrix);
@@ -166,9 +163,9 @@ GfxInterface *GfxCitro3d::Init(){
 
     C3D_CullFace(GPU_CULL_NONE);
 
-    Mtx_Identity(&self->correctionMatrix);
+    Mtx_Identity(&self->rotationMatrix);
     Mtx_RotateZ(
-        &self->correctionMatrix,
+        &self->rotationMatrix,
         -M_PI / 2.0f,
         false
     );
@@ -287,6 +284,8 @@ void GfxCitro3d::SetTextureFactor(ZunColor factor){
 
 void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matrix){
 
+    C3D_Mtx tempMtx;
+
     // Matricies need to be transposed since ZunMatrix and C3D_Mtx are stored differently
     switch (type)
     {
@@ -312,17 +311,17 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
         for (int i = 0; i < 4; i++)
         {
             // Using precalculated projection matrix
-            this->projectionMatrix.r[i].x = matrix.m[0][i];
-            this->projectionMatrix.r[i].y = matrix.m[1][i];
-            this->projectionMatrix.r[i].z = matrix.m[2][i];
-            this->projectionMatrix.r[i].w = matrix.m[3][i];
+            tempMtx.r[i].x = matrix.m[0][i];
+            tempMtx.r[i].y = matrix.m[1][i];
+            tempMtx.r[i].z = matrix.m[2][i];
+            tempMtx.r[i].w = matrix.m[3][i];
         }
 
         //Rotate the projection by 90 degrees
         Mtx_Multiply(
-            &this->correctedMatrix,
-            &this->correctionMatrix,
-            &this->projectionMatrix
+            &this->projectionMatrix,
+            &this->rotationMatrix,
+            &tempMtx
         );
         break;
     case MATRIX_TEXTURE:
@@ -338,36 +337,36 @@ void GfxCitro3d::SetTransformMatrix(TransformMatrix type, const ZunMatrix &matri
         for (int i = 0; i < 4; i++)
         {
             // Using precalculated projection matrix
-            this->projectionMatrixLeft.r[i].x = matrix.m[0][i];
-            this->projectionMatrixLeft.r[i].y = matrix.m[1][i];
-            this->projectionMatrixLeft.r[i].z = matrix.m[2][i];
-            this->projectionMatrixLeft.r[i].w = matrix.m[3][i];
+            tempMtx.r[i].x = matrix.m[0][i];
+            tempMtx.r[i].y = matrix.m[1][i];
+            tempMtx.r[i].z = matrix.m[2][i];
+            tempMtx.r[i].w = matrix.m[3][i];
 
             //printf("(%f,%f,%f,%f)\n", this->projectionMatrixLeft.r[i].x, this->projectionMatrixLeft.r[i].y, this->projectionMatrixLeft.r[i].z, this->projectionMatrixLeft.r[i].w); 
         }
 
         //Rotate the projection by 90 degrees
         Mtx_Multiply(
-            &this->correctedMatrixLeft,
-            &this->correctionMatrix,
-            &this->projectionMatrixLeft
+            &this->projectionMatrixLeft,
+            &this->rotationMatrix,
+            &tempMtx
         );
         break;
     case MATRIX_PROJECTION_RIGHT:
         for (int i = 0; i < 4; i++)
         {
             // Using precalculated projection matrix
-            this->projectionMatrixRight.r[i].x = matrix.m[0][i];
-            this->projectionMatrixRight.r[i].y = matrix.m[1][i];
-            this->projectionMatrixRight.r[i].z = matrix.m[2][i];
-            this->projectionMatrixRight.r[i].w = matrix.m[3][i];
+            tempMtx.r[i].x = matrix.m[0][i];
+            tempMtx.r[i].y = matrix.m[1][i];
+            tempMtx.r[i].z = matrix.m[2][i];
+            tempMtx.r[i].w = matrix.m[3][i];
         }
 
         //Rotate the projection by 90 degrees
         Mtx_Multiply(
-            &this->correctedMatrixRight,
-            &this->correctionMatrix,
-            &this->projectionMatrixRight
+            &this->projectionMatrixRight,
+            &this->rotationMatrix,
+            &tempMtx
         );
         break;
     }
@@ -494,19 +493,13 @@ void GfxCitro3d::SetClearDepth(f32 depth){
     this->C3D_cleardepth = (u32)(depth * 0xFFFFFF);
 }
 
-static u8 FloatToColorByte(f32 value)
-{
-    value = std::clamp(value, 0.0f, 1.0f);
-    return (u8)(value * 255.0f + 0.5f);
-}
-
 void GfxCitro3d::SetClearColor(f32 r, f32 g, f32 b, f32 a){
     // Not exactly sure why this exists when the game renders over the entire screen. I'm going to disable it so the edges of the screen stay black. However it can be enabled it if causes problems later on
     //this->C3D_clearcolor = C2D_Color32(FloatToColorByte(r),FloatToColorByte(g),FloatToColorByte(b),FloatToColorByte(a));
 }
 
 float GfxCitro3d::getVertexBufferUsage(){
-    float usage = this->vertexCount/static_cast<float>(MAX_VERTICES);
+    float usage = this->vertexCount/(float)(MAX_VERTICES);
     return usage;
 }
 
@@ -649,10 +642,10 @@ std::vector<u8> SwizzleTexture(
     //Not correctly calculating the padding values
     // paddedWidth  = (width  + 7) & ~7u;
     // paddedHeight = (height + 7) & ~7u;
-    const u8* input = static_cast<const u8*>(source);
+    const u8* input = (const u8*)(source);
 
     std::vector<u8> output(
-        static_cast<std::size_t>(paddedWidth) *
+        (std::size_t)(paddedWidth) *
         paddedHeight *
         bytesPerPixel,
         0
@@ -678,11 +671,11 @@ std::vector<u8> SwizzleTexture(
                 MortonIndex8(localX, localY);
 
             const std::size_t sourceOffset =
-                (static_cast<std::size_t>(y) * width + x) *
+                ((std::size_t)(y) * width + x) *
                 bytesPerPixel;
 
             const std::size_t outputOffset =
-                static_cast<std::size_t>(pixelIndex) *
+                (std::size_t)(pixelIndex) *
                 bytesPerPixel;
 
             // For some reason this pixel format is reversed?
@@ -720,17 +713,6 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
     if (this->boundTexture3ds)
     {
         GPU_TEXCOLOR textureFormat = Get3DSPixelFormat(fmt, type);
-        const u8* pixels = static_cast<const u8*>(data);
-
-        u32 bpp = 2;
-        if (type == PIXEL_UNSIGNED_BYTE)
-        {
-            if (fmt == PIXEL_RGB){
-                bpp = 3;
-            }else{
-                bpp = 4;
-            }
-        }
 
         paddedwidth = BitCeil(width);
         paddedheight = BitCeil(height);
@@ -781,11 +763,10 @@ void GfxCitro3d::ReadPixels(i32 x, i32 y, i32 width, i32 height, const void *pix
 
 void GfxCitro3d::SwapBuffers(){
     this->first_draw = true;
-    this->vertexWriteOffset = 0;
     C3D_FrameEnd(0);
 }
 
-void GfxCitro3d::Enable3d(bool enable, i32 strength){
+void GfxCitro3d::Enable3d(bool enable){
 
     if(enable == this->use3d){
         return;
@@ -797,14 +778,6 @@ void GfxCitro3d::Enable3d(bool enable, i32 strength){
     }else{
         gfxSet3D(false);
         this->use3d = false;
-    }
-}
-
-void GfxCitro3d::Toggle3d(){
-    if(this->use3d){
-        this->Enable3d(true, 0);
-    }else{
-        this->Enable3d(false, 0);
     }
 }
 
@@ -823,15 +796,22 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         break;
     }
 
+    if((this->vertexCount + count) >= MAX_VERTICES){
+        printf("Vertex buffer is full, skipping draw\n");
+        //Should I kill the app or just skip the draw call? hmm
+        return;
+    }
+
     if(this->first_draw){
 
         float slider = osGet3DSliderState();
 
         if(slider > 0.0f){
-            this->Enable3d(true, 0);
+            this->Enable3d(true);
         }else{
-            this->Enable3d(false, 0);
+            this->Enable3d(false);
         }
+
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 
         this->first_draw = false;
@@ -841,38 +821,35 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 
     u32 firstVertex = this->vertexWriteOffset;
 
-    const u8* base_pos = static_cast<const u8*>(this->vertexData);
-    const u8* base_tex = static_cast<const u8*>(this->texCoordData);
-    const u8* base_diffuse = static_cast<const u8*>(this->diffuseData);
+    const u8* base_pos = (const u8*)(this->vertexData);
+    const u8* base_tex = (const u8*)(this->texCoordData);
+    const u8* base_diffuse = (const u8*)(this->diffuseData);
 
-    for(int i = 0; i < count; i++){
+    // This assumes that tex and diffuse can't be uased together which I believe is true for th06? However this is not true in general
+    if(this->useTexCoord){
+        for(int i = 0; i < count; i++){
+                const u8* vertex_pos = base_pos + i * this->vertexStride;
 
-        const u8* vertex_pos = base_pos + i * this->vertexStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
 
-        std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos + 0,  sizeof(f32));
-        std::memcpy(&this->vertexBuffer[firstVertex+i].y, vertex_pos + 4,  sizeof(f32));
-        std::memcpy(&this->vertexBuffer[firstVertex+i].z, vertex_pos + 8,  sizeof(f32));
+                const u8* vertex_tex = base_tex + i * this->texCoordStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex, 2*sizeof(f32));
 
-        if(this->useTexCoord){
-            const u8* vertex_tex = base_tex + i * this->texCoordStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex + 0, sizeof(f32));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].v, vertex_tex + 4, sizeof(f32));
-        }else{
-            this->vertexBuffer[firstVertex+i].u = 0;
-            this->vertexBuffer[firstVertex+i].v = 0;
+                this->vertexBuffer[firstVertex+i].r = 0;
+                this->vertexBuffer[firstVertex+i].g = 0;
+                this->vertexBuffer[firstVertex+i].b = 0;
+                this->vertexBuffer[firstVertex+i].a = 0; 
         }
+    }else{
+        for(int i = 0; i < count; i++){
+                const u8* vertex_pos = base_pos + i * this->vertexStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
 
-        if(this->useDiffuse){
-            const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
-            std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse + 0,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].g, vertex_diffuse + 1,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].b, vertex_diffuse + 2,  sizeof(u8));
-            std::memcpy(&this->vertexBuffer[firstVertex+i].a, vertex_diffuse + 3,  sizeof(u8));
-        }else{
-            this->vertexBuffer[firstVertex+i].r = 0.0f;
-            this->vertexBuffer[firstVertex+i].g = 0.0f;
-            this->vertexBuffer[firstVertex+i].b = 0.0f;
-            this->vertexBuffer[firstVertex+i].a = 0.0f;               
+                this->vertexBuffer[firstVertex+i].u = 0.0f;
+                this->vertexBuffer[firstVertex+i].v = 0.0f;
+
+                const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
         }
     }
 
@@ -883,9 +860,9 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
 
     if(this->use3d){
-        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrixLeft);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrixLeft);
     }else{
-        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrix);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrix);
     }
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
@@ -895,7 +872,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     if(this->use3d){
         C3D_FrameDrawOn(this->rightTarget);
         C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
-        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->correctedMatrixRight);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrixRight);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
         C3D_DrawArrays(C3DPrim, firstVertex, count); 
