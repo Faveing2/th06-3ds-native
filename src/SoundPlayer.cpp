@@ -27,11 +27,12 @@
 //   The scale is from 0 (no volume modification) to -10,000 (subtraction of 100 decibels, and basically silent).
 //   20 decibels affects wave amplitude by a factor of 10
 
+// I should probably have a function to apply a flat volume increase, or I can just edit these values :)
 static const SoundBufferIdxVolume g_SoundBufferIdxVol[32] = {
-    {0, -1500}, {0, -2000}, {1, -1200}, {1, -1400}, {2, -1000},  {3, -500},   {4, -500},   {5, -1700},
-    {6, -1700}, {7, -1700}, {8, -1000}, {9, -1000}, {10, -1900}, {11, -1200}, {12, -900},  {5, -1500},
-    {13, -900}, {14, -900}, {15, -600}, {16, -400}, {17, -1100}, {18, -900},  {5, -1800},  {6, -1800},
-    {7, -1800}, {19, -300}, {20, -600}, {21, -800}, {22, -100},  {23, -500},  {24, -1000}, {25, -1000},
+    {0, -1200}, {0, -1700}, {1, -900}, {1, -1100}, {2, -700},  {3, -300},   {4, -200},   {5, -1400},
+    {6, -1400}, {7, -1400}, {8, -700}, {9, -700}, {10, -600}, {11, -900}, {12, -600},  {5, -1200},
+    {13, -600}, {14, -600}, {15, -300}, {16, -100}, {17, -800}, {18, -600},  {5, -1500},  {6, -1500},
+    {7, -1500}, {19, -000}, {20, -300}, {21, -500}, {22, -000},  {23, -200},  {24, -700}, {25, -700},
 };
 static const char *const g_SFXList[26] = {
     "data/wav/plst00.wav", "data/wav/enep00.wav",   "data/wav/pldead00.wav", "data/wav/power0.wav",
