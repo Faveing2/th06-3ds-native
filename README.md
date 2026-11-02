@@ -63,7 +63,7 @@ make
 ```
 # TODO
 - Implement linear fog rendering
-
+- Fix sound not playing when using Azahar
 
 # Credits
 
