@@ -30,9 +30,9 @@ Simply download/install the latest release from the QR code above. No need to up
 # Screenshots
 
 <p float="left">
-  <img src="assets/Touhou 6_02.11.26_11.04.49.146.png" width="33%" />
-  <img src="assets/Touhou 6_02.11.26_11.05.11.755.png" width="33%" />
-  <img src="assets/Touhou 6_02.11.26_11.06.52.133.png" width="33%" />
+  <img src="assets/Touhou 6_02.11.26_11.04.49.146.png" width="32%" />
+  <img src="assets/Touhou 6_02.11.26_11.05.11.755.png" width="32%" />
+  <img src="assets/Touhou 6_02.11.26_11.06.52.133.png" width="32%" />
 </p>
 
 # Building
