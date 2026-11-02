@@ -4,7 +4,7 @@ This project was made possible by the amazing work that has been put into the To
 
 # Installing
 
-Obtain the following files/folders from a legally obtained copy of Touhou 6 (v1.02) into a folder `th06` on the root of your 3ds sdcard.
+Obtain the following files/folders from a legally obtained copy of Touhou 6 (v1.02) and copy the following into a folder `th06` on the root of your 3ds sdcard.
 - `bgm/`
 - `紅魔郷CM.DAT`
 - `紅魔郷ED.DAT`
@@ -14,14 +14,14 @@ Obtain the following files/folders from a legally obtained copy of Touhou 6 (v1.
 - `紅魔郷TL.DAT`
 - `msgothic.ttc`
 
-Download and install the CIA/3dsx from the releases section or scan this QR code in FBI:
+Download and install the CIA/3dsx file from the releases section or scan this QR code in FBI:
 
 ![FBI install QR code](assets/v1.0.5-beta.png)
 
 # Features
 
 - Switch between 5:3 and 4:3 aspect ratio using display mode in options.
-- 3D render support
+- Experimental 3ds 3d rendering support
 
 # Building
 
