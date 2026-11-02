@@ -27,6 +27,14 @@ Download and install the CIA/3dsx file from the releases section or scan this QR
 
 Simply download/install the latest release from the QR code above. No need to update any files on your 3ds.
 
+# Screenshots
+
+<p float="left">
+  <img src="assets/Touhou 6_02.11.26_11.04.49.146.png" width="33%" />
+  <img src="assets/Touhou 6_02.11.26_11.05.11.755.png" width="33%" />
+  <img src="assets/Touhou 6_02.11.26_11.06.52.133.png" width="33%" />
+</p>
+
 # Building
 
 ### Dependencies
