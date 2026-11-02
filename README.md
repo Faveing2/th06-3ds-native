@@ -23,6 +23,10 @@ Download and install the CIA/3dsx file from the releases section or scan this QR
 - Switch between 5:3 and 4:3 aspect ratio using display mode in options.
 - Experimental 3ds 3d rendering support
 
+# Updating
+
+Simply download/install the latest release from the QR code above. No need to update any files on your 3ds.
+
 # Building
 
 ### Dependencies
