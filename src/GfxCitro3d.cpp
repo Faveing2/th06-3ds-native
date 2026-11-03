@@ -20,10 +20,8 @@
 // Compiled vertex shader
 #include "ff_shbin.h"
 
-#define CLEAR_COLOR 0x68B0D8FF
-
-// Defines a fixed sized vertex buffer. Surely 20000 verticies will be enough :) This is 5.7MB of ram, should probably make this a dynamically allocated array probably
-#define MAX_VERTICES 20000
+// Matching the value used for https://github.com/ItsPoofy/th06-3ds/blob/e6ec18704b60398904b3afe47e9fda684842c67a/src/platform/3ds/CtrRenderer.hpp#L97, I'll probably do some research into why this value exactly. This will allocate 3.8MB to the vertex buffer for the GPU
+#define MAX_VERTICES 137000
 
 static PrintConsole bottomScreen;
 
@@ -35,17 +33,6 @@ static PrintConsole bottomScreen;
 	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
 	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
 	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
-
-// The two antialiasing modes, XY is rendering the game at 2x resolution, and X is doubling the X resolution
-#define DISPLAY_TRANSFER_FLAG_ANTI \
-	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
-	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
-	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_XY))
-
-#define DISPLAY_TRANSFER_FLAG_ANTI_X \
-	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
-	GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
-	GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_X))
 
 GfxInterface *GfxCitro3d::Create(){
 
@@ -173,6 +160,13 @@ GfxInterface *GfxCitro3d::Init(){
     // Define the fixed sized vertex buffer
     self->vertexBuffer = static_cast<Vertex3DS*>(linearAlloc(MAX_VERTICES * sizeof(Vertex3DS)));
 
+    if(!self->vertexBuffer){
+        // Switch this to a debug later
+        printf("Failed to allocate vertex buffer, exiting");
+        delete self;
+        return NULL;
+    }
+
     self->vertexBufferInfo = C3D_GetBufInfo();
 	BufInfo_Init(self->vertexBufferInfo);
 	BufInfo_Add(self->vertexBufferInfo, self->vertexBuffer, sizeof(Vertex3DS), 3, 0x210);
@@ -189,6 +183,7 @@ GfxInterface *GfxCitro3d::Init(){
 }   
 
 void GfxCitro3d::Exit(){
+    delete this->vertexBuffer;
     C3D_Fini();
     gfxExit();
 }
@@ -796,12 +791,6 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         break;
     }
 
-    if((this->vertexCount + count) >= MAX_VERTICES){
-        printf("Vertex buffer is full, skipping draw\n");
-        //Should I kill the app or just skip the draw call? hmm
-        return;
-    }
-
     if(this->first_draw){
 
         float slider = osGet3DSliderState();
@@ -817,6 +806,12 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         this->first_draw = false;
         this->vertexWriteOffset = 0;
         this->vertexCount = 0;
+    }
+
+    if((this->vertexCount + count) >= MAX_VERTICES){
+        printf("Vertex buffer is full, skipping draw\n");
+        //Should I kill the app or just skip the draw call? hmm
+        return;
     }
 
     u32 firstVertex = this->vertexWriteOffset;
