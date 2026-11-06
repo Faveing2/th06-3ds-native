@@ -16,7 +16,7 @@ Obtain the following files/folders from a legally obtained copy of Touhou 6 (v1.
 
 Download and install the CIA/3dsx file from the releases section or scan this QR code in FBI:
 
-![FBI install QR code](assets/v1.0.6-beta.png)
+![FBI install QR code](assets/v1.0.7-beta.png)
 
 # Features
 
