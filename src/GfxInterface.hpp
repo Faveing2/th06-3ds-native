@@ -168,6 +168,8 @@ struct GfxInterface
     virtual void SetFullScreen(bool enable) = 0;
     virtual float getVertexBufferUsage() = 0;
 
+    virtual void setFogLut() = 0;
+
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
 };

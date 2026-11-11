@@ -76,6 +76,7 @@ struct GfxCitro3d : GfxInterface
 
     virtual float getVertexBufferUsage();
 
+    virtual void setFogLut();
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
     private:
@@ -90,7 +91,7 @@ struct GfxCitro3d : GfxInterface
         shaderProgram_s program;
 
         u32 C3D_clearcolor = 0x00000000;
-        u32 C3D_cleardepth = 0xFFFFFF;
+        f32 C3D_cleardepth = 0xFFFFFF;
 
         bool useTexCoord = false;
         bool useDiffuse = false;
@@ -101,6 +102,14 @@ struct GfxCitro3d : GfxInterface
 
         f32 depthNear3ds, depthFar3ds;
         i32 viewport3ds[4];
+
+        C3D_FogLut fogTable;
+
+        f32 fogNear = 0;
+        f32 fogFar = 0;
+
+        f32 prevFogNear = 0;
+        f32 prevFogFar = 0;
 
         bool use3d = false;
         bool first_draw=true;

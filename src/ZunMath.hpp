@@ -751,5 +751,5 @@ inline void projectVec3(ZunVec3 &out, const ZunVec3 &inVec, const ZunViewport &v
     // Going to change the ranges on these clip vectors to the PICA200 ranges
     out.x = mapRange(clipVector.x, -1.0f, 1.0f, viewport.x, viewport.x + viewport.width);
     out.y = mapRange(clipVector.y, -1.0f, 1.0f, viewport.y + viewport.height, viewport.y);
-    out.z = mapRange(clipVector.z, -1.0f, 0.0f, viewport.minZ, viewport.maxZ);
+    out.z = mapRange(clipVector.z, -1.0f, 1.0f, viewport.minZ, viewport.maxZ);
 }

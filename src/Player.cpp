@@ -100,6 +100,9 @@ ZunResult Player::AddedCallback(Player *p)
     p->positionCenter.z = 0.49;
     p->orbsPosition[0].z = 0.49;
     p->orbsPosition[1].z = 0.49;
+    // p->positionCenter.z = 0.0;
+    // p->orbsPosition[0].z = 0.0;
+    // p->orbsPosition[1].z = 0.0;
     for (idx = 0; idx < ARRAY_SIZE_SIGNED(p->bombRegionSizes); idx++)
     {
         p->bombRegionSizes[idx].x = 0.0;

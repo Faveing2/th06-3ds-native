@@ -85,6 +85,9 @@ GfxInterface *GfxCitro3d::Init(){
 	self->env = C3D_GetTexEnv(0);
 	C3D_TexEnvInit(self->env);
 
+    // DepthMap only needs to be set once and never changes
+    C3D_DepthMap(true,-1.0f,1.0f);
+
     // OpenGL GL_TEXTURE_ENV_MODE = GL_COMBINE
     // Explicitly select the equivalent of source 0.
     GPU_TEVSRC source1;
@@ -157,6 +160,8 @@ GfxInterface *GfxCitro3d::Init(){
         false
     );
 
+    C3D_FogGasMode(GPU_FOG,GPU_PLAIN_DENSITY,false);
+
     // Define the fixed sized vertex buffer
     self->vertexBuffer = static_cast<Vertex3DS*>(linearAlloc(MAX_VERTICES * sizeof(Vertex3DS)));
 
@@ -183,25 +188,65 @@ GfxInterface *GfxCitro3d::Init(){
 }   
 
 void GfxCitro3d::Exit(){
-    delete this->vertexBuffer;
+
+    // I should also go through and make sure every texture is deleted as to not cause memory leaks.
+    linearFree(this->vertexBuffer);
     C3D_Fini();
     gfxExit();
 }
 
+void GfxCitro3d::setFogLut(){
+
+    // Really I should store the LUTs so I don't have to remake them every time the fog changes, however I'm tired and that's for tomorrow me
+
+    if((this->fogFar == this->prevFogFar) & (this->fogNear == this->prevFogNear)){
+        // If the fog is the same as the previous call, then just skip
+        return;
+    }else{
+        this->prevFogFar = this->fogFar;
+        this->prevFogNear = this->fogNear;
+    }
+
+    f32 data[256];
+    f32 previous = 0.0f;
+
+    for(i32 i=0; i<=128; i++){
+        f32 depth = i/128.0f;
+
+        // The math here is based on https://github.com/ItsPoofy/th06-3ds, however my ndc is different since I'm using the clip space of [-1,0] so my ndc must reflect that.
+        f32 ndc = (depth-this->depthFar3ds)/(this->depthFar3ds-this->depthNear3ds);
+        f32 denominator = ndc*this->projectionMatrix.r[3].z - this->projectionMatrix.r[2].z;
+        f32 viewZ = std::abs((this->projectionMatrix.r[2].w - ndc*this->projectionMatrix.r[3].w)/denominator);
+        f32 value = std::clamp((this->fogFar-viewZ)/(this->fogFar-this->fogNear), 0.0f,1.0f);
+
+        if(i<128){
+            data[i] = value;
+        }
+        if(i>0){
+            data[i+127] = value-previous;
+        }
+        previous = value;
+    }
+
+    FogLut_FromArray(&this->fogTable, data);
+    C3D_FogLutBind(&this->fogTable);
+}
+
 void GfxCitro3d::SetFogRange(f32 nearPlane, f32 farplane){
-    // FogLut_Exp(&this->fog_Lut, 
-    // //     0.5f,   // Density
-    // //     1.5f,   // Gradient (controls the falloff curve sharpness)
-    // //     -0.00001f,   // Near distance mapping
-    // //     1.0f  // Far distance mapping
-    // // );
-    // // C3D_FogGasMode(GPU_FOG, GPU_PLAIN_DENSITY, false);
-    // // C3D_FogLutBind(&this->fog_Lut);
+    this->fogNear = nearPlane;
+    this->fogFar = farplane;
 }
 
 void GfxCitro3d::SetFogColor(ZunColor color){
-    //C3D_FogColor(u32 color);
-    C3D_FogColor(color); 
+    // Funny this doesn't have to be converted huh (Actually it does :D)
+
+    u8 fogColorFactors[4] = {((color & 0xFF), ((color >> 24) & 0xFF),(color >> 16) & 0xFF), ((color >> 8) & 0xFF)};
+
+    u32 color_converted;
+
+    std::memcpy(&color_converted, &fogColorFactors, sizeof(u32));
+
+    C3D_FogColor(color_converted);
 }
 
 void GfxCitro3d::ToggleVertexAttribute(u8 attr, bool enable){
@@ -429,10 +474,7 @@ void GfxCitro3d::SetDepthRange(f32 nearPlane, f32 farPlane){
     depthNear3ds = nearPlane;
     depthFar3ds = farPlane;
 
-    //C3D_DepthMap(true, nearPlane, farPlane);
-
-    // This works and I'm not exactly sure why
-    C3D_DepthMap(true, -1.0, 1.0);
+    C3D_DepthMap(true,(depthFar3ds-depthNear3ds),depthFar3ds);
 }
 
 void GfxCitro3d::Enable(Capabilities cap){
@@ -468,13 +510,14 @@ void GfxCitro3d::SetDepthMask(bool enable){
 }
 
 void GfxCitro3d::SetDepthFunc(DepthFunc func){
+    // I disabled depth testing for now, as it's causing issues. However I should really look into why it's causing issues and fix the underlying problem
     switch (func)
     {
     case DEPTH_FUNC_LEQUAL:
-        C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+        C3D_DepthTest(false, GPU_LEQUAL, GPU_WRITE_ALL);
         break;
     case DEPTH_FUNC_ALWAYS:
-        C3D_DepthTest(true, GPU_ALWAYS, GPU_WRITE_ALL);
+        C3D_DepthTest(false, GPU_ALWAYS, GPU_WRITE_ALL);
         break;
     }
 }
@@ -542,14 +585,14 @@ void GfxCitro3d::Clear(u32 clearBits){
     
     if(this->use3d){
         C3D_RenderTargetClear(
-            this->leftTarget,mask, this->C3D_clearcolor, this->C3D_cleardepth
+            this->leftTarget,(C3D_ClearBits)clearBits, this->C3D_clearcolor,this->C3D_cleardepth
         );
         C3D_RenderTargetClear(
-            this->rightTarget,mask, this->C3D_clearcolor, this->C3D_cleardepth
+            this->rightTarget,(C3D_ClearBits)clearBits, this->C3D_clearcolor,this->C3D_cleardepth
         );
     }else{
         C3D_RenderTargetClear(
-            this->leftTarget,mask, this->C3D_clearcolor, this->C3D_cleardepth
+            this->leftTarget,(C3D_ClearBits)clearBits, this->C3D_clearcolor,this->C3D_cleardepth
         );
     }
 }
@@ -807,6 +850,9 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         this->vertexWriteOffset = 0;
         this->vertexCount = 0;
     }
+
+    // fog LUT must be generated after the engine has set the projection matrix
+    this->setFogLut();
 
     if((this->vertexCount + count) >= MAX_VERTICES){
         printf("Vertex buffer is full, skipping draw\n");
