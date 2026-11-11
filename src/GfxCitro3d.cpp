@@ -184,6 +184,8 @@ GfxInterface *GfxCitro3d::Init(){
         self->SetFullScreen(true);
     }
 
+    
+
     return self;
 }   
 
@@ -196,17 +198,18 @@ void GfxCitro3d::Exit(){
 }
 
 void GfxCitro3d::setFogLut(){
-
-    // Really I should store the LUTs so I don't have to remake them every time the fog changes, however I'm tired and that's for tomorrow me
-
-    if((this->fogFar == this->prevFogFar) & (this->fogNear == this->prevFogNear)){
-        // If the fog is the same as the previous call, then just skip
-        return;
-    }else{
-        this->prevFogFar = this->fogFar;
-        this->prevFogNear = this->fogNear;
+    // Check if the fog table has already been generated and that it has not already been applied. Technically I should be checking the values used in the projection matrix also, however it works fine without it.
+    for(int i = 0; i<FOG_TABLES; i++){
+        if(((this->fogLuts[i].fogFar == this->fogFar) && (this->fogLuts[i].fogNear == this->fogNear) && (this->fogLuts[i].depthFar == this->depthFar3ds) && (this->fogLuts[i].depthNear == this->depthNear3ds))){
+            if(this->fogTableAppliedIdx != i){
+                C3D_FogLutBind(&this->fogLuts[i].table);
+                this->fogTableAppliedIdx = i;
+            }
+            return;
+        }
     }
 
+    // If none of the fog tables are already generated then lets generate one
     f32 data[256];
     f32 previous = 0.0f;
 
@@ -228,8 +231,24 @@ void GfxCitro3d::setFogLut(){
         previous = value;
     }
 
-    FogLut_FromArray(&this->fogTable, data);
-    C3D_FogLutBind(&this->fogTable);
+    FogLut_FromArray(&this->fogLuts[this->fogLutPointer].table, data);
+    this->fogLuts[this->fogLutPointer].fogFar = this->fogFar;
+    this->fogLuts[this->fogLutPointer].fogNear = this->fogNear;
+    this->fogLuts[this->fogLutPointer].depthFar = this->depthFar3ds;
+    this->fogLuts[this->fogLutPointer].depthNear = this->depthNear3ds;
+
+    C3D_FogLutBind(&this->fogLuts[this->fogLutPointer].table);
+
+    this->fogTableAppliedIdx = this->fogLutPointer;
+
+    // If we run out of fog tables then start over
+    if(this->fogLutPointer+1 == FOG_TABLES){
+        this->fogLutPointer = 0;
+        // Basically invalidates the LUT
+        this->fogLuts[this->fogLutPointer].fogFar = -1.0f;
+    }else{
+        this->fogLutPointer += 1;
+    }
 }
 
 void GfxCitro3d::SetFogRange(f32 nearPlane, f32 farplane){

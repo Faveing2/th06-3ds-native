@@ -9,11 +9,23 @@
 #include <tex3ds.h>
 #include <stdio.h>
 
+// 
+#define FOG_TABLES 16
+
 struct Vertex3DS
 {
     f32 x, y, z;
     f32 u, v;
     u8 r,g,b,a;
+};
+
+struct fogLut
+{
+    C3D_FogLut table;
+    f32 fogNear;
+    f32 fogFar;
+    f32 depthNear;
+    f32 depthFar;
 };
 
 struct Texture3ds
@@ -103,13 +115,13 @@ struct GfxCitro3d : GfxInterface
         f32 depthNear3ds, depthFar3ds;
         i32 viewport3ds[4];
 
-        C3D_FogLut fogTable;
+        fogLut fogLuts[FOG_TABLES];
+        i32 fogTableAppliedIdx = -1;
+        // Not actually a pointer
+        i32 fogLutPointer = 0;
 
         f32 fogNear = 0;
         f32 fogFar = 0;
-
-        f32 prevFogNear = 0;
-        f32 prevFogFar = 0;
 
         bool use3d = false;
         bool first_draw=true;
@@ -139,8 +151,6 @@ struct GfxCitro3d : GfxInterface
         f32 screenH = 0.0f;
         f32 scalex = 0.5f;
         f32 scaley = 0.5f;
-
-        C3D_FogLut fog_Lut;
 
         bool fullscreen = true;
         f32 screenOffset = 40.0f;
