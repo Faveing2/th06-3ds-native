@@ -240,7 +240,7 @@ void GfxCitro3d::SetFogRange(f32 nearPlane, f32 farplane){
 void GfxCitro3d::SetFogColor(ZunColor color){
     // Funny this doesn't have to be converted huh (Actually it does :D)
 
-    u8 fogColorFactors[4] = {((color & 0xFF), ((color >> 24) & 0xFF),(color >> 16) & 0xFF), ((color >> 8) & 0xFF)};
+    u8 fogColorFactors[4] = {((color >> 16) & 0xFF), ((color >> 8) & 0xFF),((color) & 0xFF), ((color >> 24) & 0xFF)};
 
     u32 color_converted;
 
