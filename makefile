@@ -35,7 +35,7 @@ include $(DEVKITARM)/3ds_rules
 APP_TITLE := Touhou 06 3DS
 APP_DESCRIPTION := Embodiment of Scarlet Devil
 APP_AUTHOR := Faveing
-APP_ICON := $(CURDIR)/graphics/icon.png
+#APP_ICON := graphics/icon.png
 
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
