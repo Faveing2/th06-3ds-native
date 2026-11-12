@@ -184,6 +184,7 @@ GfxInterface *GfxCitro3d::Init(){
     return self;
 }   
 
+// This is never called huh
 void GfxCitro3d::Exit(){
     linearFree(this->vertexBuffer);
     C3D_Fini();

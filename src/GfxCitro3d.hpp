@@ -96,6 +96,13 @@ struct GfxCitro3d : GfxInterface
     virtual void setFogLut();
     //virtual u8* ReverseTextureRBValues(const u8* data, u32 width, u32 height);
 
+    // Added a deconstructor to make sure that the vertex buffer is released and C3D is released
+    ~GfxCitro3d(){
+        linearFree(vertexBuffer);
+        C3D_Fini();
+        gfxExit();
+    }
+
     private:
         std::vector<std::unique_ptr<Texture3ds>> textures3ds;
         std::vector<u32> freeTextures3ds;
