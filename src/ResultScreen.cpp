@@ -858,11 +858,12 @@ i32 ResultScreen::HandleReplaySaveKeyboard()
 
         if (this->frameTimer == 0)
         {
-            FileSystem::CreateDir("./replay");
+            // How did I not see this line for 3 hours
+            FileSystem::CreateDir("/th06/replay");
 
             for (idx = 0; idx < ARRAY_SIZE_SIGNED(this->replays); idx++)
             {
-                std::sprintf(replayToReadPath, "./replay/th6_%.2d.rpy", idx + 1);
+                std::sprintf(replayToReadPath, "/th06/replay/th6_%.2d.rpy", idx + 1);
                 replayLoaded = (ReplayHeader *)FileSystem::OpenPath(replayToReadPath, 1);
                 if (replayLoaded == NULL)
                 {
@@ -1028,7 +1029,7 @@ i32 ResultScreen::HandleReplaySaveKeyboard()
             }
             else
             {
-                std::sprintf(replayPath, "./replay/th6_%.2d.rpy", this->replayNumber + 1);
+                std::sprintf(replayPath, "/th06/replay/th6_%.2d.rpy", this->replayNumber + 1);
                 ReplayManager::SaveReplay(replayPath, this->replayName);
                 this->frameTimer = 0;
                 this->resultScreenState = RESULT_SCREEN_STATE_EXITING;

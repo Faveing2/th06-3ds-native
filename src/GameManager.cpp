@@ -440,7 +440,7 @@ ZunResult GameManager::AddedCallback(GameManager *mgr)
     }
     if (g_GameManager.isInReplay == 0)
     {
-        ReplayManager::RegisterChain(0, "replay/th6_00.rpy");
+        ReplayManager::RegisterChain(0, "/th06/replay/th6_00.rpy");
     }
     if (g_GameManager.demoMode == 0)
     {

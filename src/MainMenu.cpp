@@ -1254,7 +1254,7 @@ i32 MainMenu::ReplayHandling()
     //    HANDLE replayFileHandle;
     u32 replayFileIdx;
     ReplayHeader *replayData;
-    char replayFilePath[32];
+    char replayFilePath[60];
     //    WIN32_FIND_DATA replayFileInfo;
     u8 padding[0x20]; // idk
 
@@ -1274,7 +1274,7 @@ i32 MainMenu::ReplayHandling()
                 replayFileIdx = 0;
                 for (cur = 0; cur < 15; cur++)
                 {
-                    std::sprintf(replayFilePath, "./replay/th6_%.2d.rpy", cur + 1);
+                    std::sprintf(replayFilePath, "/th06/replay/th6_%.2d.rpy", cur + 1);
                     replayData = (ReplayHeader *)FileSystem::OpenPath(replayFilePath, 1);
                     if (replayData == NULL)
                     {

@@ -85,9 +85,6 @@ GfxInterface *GfxCitro3d::Init(){
 	self->env = C3D_GetTexEnv(0);
 	C3D_TexEnvInit(self->env);
 
-    // DepthMap only needs to be set once and never changes
-    C3D_DepthMap(true,-1.0f,1.0f);
-
     // OpenGL GL_TEXTURE_ENV_MODE = GL_COMBINE
     // Explicitly select the equivalent of source 0.
     GPU_TEVSRC source1;
@@ -184,14 +181,10 @@ GfxInterface *GfxCitro3d::Init(){
         self->SetFullScreen(true);
     }
 
-    
-
     return self;
 }   
 
 void GfxCitro3d::Exit(){
-
-    // I should also go through and make sure every texture is deleted as to not cause memory leaks.
     linearFree(this->vertexBuffer);
     C3D_Fini();
     gfxExit();

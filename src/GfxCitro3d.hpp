@@ -37,6 +37,11 @@ struct Texture3ds
     PixelDataType type;
     std::vector<u8> data;
     inline ZunColor GetPixel(i32 x, i32 y);
+
+    // Add a deconstructor to make sure that the vram allocation is removed
+    ~Texture3ds(){
+        C3D_TexDelete(&texObject);
+    }
 };
 
 struct GfxCitro3d : GfxInterface
