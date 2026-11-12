@@ -62,8 +62,8 @@ Clone this repository and run
 make
 ```
 # TODO
-- Implement linear fog rendering
 - Fix sound not playing when using Azahar
+- Fix memory leak when changing the aspect ratio
 
 # Credits
 
