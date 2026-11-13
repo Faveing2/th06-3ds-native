@@ -879,8 +879,20 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     const u8* base_tex = (const u8*)(this->texCoordData);
     const u8* base_diffuse = (const u8*)(this->diffuseData);
 
-    // This assumes that tex and diffuse can't be uased together which I believe is true for th06? However this is not true in general
-    if(this->useTexCoord){
+    // The first case I'm pretty sure never runs.
+    if(this->useTexCoord && this->useDiffuse){
+        printf("Does this ever run\n");
+        for(int i = 0; i < count; i++){
+                const u8* vertex_pos = base_pos + i * this->vertexStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
+
+                const u8* vertex_tex = base_tex + i * this->texCoordStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex, 2*sizeof(f32));
+
+                const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
+                std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
+        }
+    }else if(this->useTexCoord && !this->useDiffuse){
         for(int i = 0; i < count; i++){
                 const u8* vertex_pos = base_pos + i * this->vertexStride;
                 std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
@@ -893,14 +905,14 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
                 this->vertexBuffer[firstVertex+i].b = 0;
                 this->vertexBuffer[firstVertex+i].a = 0; 
         }
-    }else{
+    }else if(!this->useTexCoord && this->useDiffuse){
         for(int i = 0; i < count; i++){
                 const u8* vertex_pos = base_pos + i * this->vertexStride;
                 std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
 
                 this->vertexBuffer[firstVertex+i].u = 0.0f;
                 this->vertexBuffer[firstVertex+i].v = 0.0f;
-
+            
                 const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
                 std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
         }
