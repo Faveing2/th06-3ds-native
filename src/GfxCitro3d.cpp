@@ -883,7 +883,6 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     if(this->useTexCoord){
         for(int i = 0; i < count; i++){
                 const u8* vertex_pos = base_pos + i * this->vertexStride;
-
                 std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
 
                 const u8* vertex_tex = base_tex + i * this->texCoordStride;
@@ -910,23 +909,26 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     this->vertexWriteOffset += count;
     this->vertexCount += count;
 
-    C3D_FrameDrawOn(this->leftTarget);
-    C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
-
     if(this->use3d){
+        // Left frame buffer
+        C3D_FrameDrawOn(this->leftTarget);
+        C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrixLeft);
-    }else{
-        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrix);
-    }
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
-    C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
-    C3D_DrawArrays(C3DPrim, firstVertex, count); 
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
+        C3D_DrawArrays(C3DPrim, firstVertex, count); 
 
-    //If 3D is set then also render to the right eye
-    if(this->use3d){
+        // Now the right frame buffer
         C3D_FrameDrawOn(this->rightTarget);
         C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrixRight);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
+        C3D_DrawArrays(C3DPrim, firstVertex, count); 
+    }else{
+        C3D_FrameDrawOn(this->leftTarget);
+        C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
+        C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrix);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
         C3D_DrawArrays(C3DPrim, firstVertex, count); 
