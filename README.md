@@ -1,6 +1,23 @@
-# th06-3ds-native
+# Touhou Koumakyou ~ the Embodiment of Scarlet Devil 3ds Edition
 
-This project was made possible by the amazing work that has been put into the Touhou 6 decomp projection https://github.com/GensokyoClub/th06. I simply ported the game to the 3ds, they did all the work of decompiling th06.
+<p align="center">
+  <img src="icon.png" width="10%" />
+</p>
+
+This project is a port of [GensokyoClub's Th06 Decomplilation](https://github.com/GensokyoClub/th06) to the 3ds using the Citro3d graphics library.
+
+# Features
+
+- Switch between 5:3 and 4:3 aspect ratio using display mode in options.
+- Experimental stereoscopic 3d rendering support
+
+# Screenshots
+
+<p float="left">
+  <img src="assets/Touhou 6_02.11.26_11.04.49.146.png" width="30%" />
+  <img src="assets/Touhou 6_02.11.26_11.05.11.755.png" width="30%" />
+  <img src="assets/Touhou 6_02.11.26_11.06.52.133.png" width="30%" />
+</p>
 
 # Installing
 
@@ -18,22 +35,9 @@ Download and install the CIA/3dsx file from the releases section or scan this QR
 
 ![FBI install QR code](assets/v1.0.8-beta.png)
 
-# Features
-
-- Switch between 5:3 and 4:3 aspect ratio using display mode in options.
-- Experimental 3ds 3d rendering support
-
 # Updating
 
-Simply download/install the latest release from the QR code above. No need to update any files on your 3ds.
-
-# Screenshots
-
-<p float="left">
-  <img src="assets/Touhou 6_02.11.26_11.04.49.146.png" width="30%" />
-  <img src="assets/Touhou 6_02.11.26_11.05.11.755.png" width="30%" />
-  <img src="assets/Touhou 6_02.11.26_11.06.52.133.png" width="30%" />
-</p>
+Download/install the latest release from the QR code above or the releases. No need to update any files on your 3ds.
 
 # Building
 
@@ -61,12 +65,17 @@ Clone this repository and run
 ```
 make
 ```
+
 # TODO
 - Fix sound not playing when using Azahar
-- Fix memory leak when changing the aspect ratio
+
+# AI Disclaimer
+AI was used to aid in debugging code. However all changes from GensolyoClub's source code was written by myself. 
 
 # Credits
 
-Code is based on the portable branch of https://github.com/GensokyoClub/th06
+This project would not be possible without the amazing work put into https://github.com/GensokyoClub/th06. 
+
+Base code was based on the portable branch of https://github.com/GensokyoClub/th06
 
 Zun for creating Touhou
