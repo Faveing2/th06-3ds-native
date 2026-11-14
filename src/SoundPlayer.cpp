@@ -620,8 +620,8 @@ void SoundPlayer::MixAudio(u32 samples)
 void SoundPlayer::BackgroundMusicPlayerThread()
 {
 
-    // Aim to keep 10 frames of audio in the buffer
-    const int targetFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 10;
+    // Aim to keep 6 frames of audio in the buffer
+    const int targetFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 6;
     const int lowFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 5;
     const int minChunk = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60);
 
@@ -631,9 +631,10 @@ void SoundPlayer::BackgroundMusicPlayerThread()
     {
         int framesToQueue = 0;
 
-        // SDL_GetQueuedAudioSize returns amount of bytes in the que, so divide it by 4 to convert it to samples
+        // SDL_GetQueuedAudioSize returns amount of bytes in the que, so divide it by 4 (2 bytes per sample per channel) to convert it to samples
         u32 queuedSamples = SDL_GetQueuedAudioSize(this->audioDev)/4;
         
+        // If we dip below the lower limit, then add frames to the queue
         if(queuedSamples < lowFrames){
             if((targetFrames - queuedSamples) > minChunk){
                 framesToQueue = minChunk;
