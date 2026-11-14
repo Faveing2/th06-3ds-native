@@ -174,7 +174,8 @@ struct AnmManager
     u32 spritesToDraw;
     VertexTex1Xyzrhw *vertexBufferStartPtr;
     VertexTex1Xyzrhw *vertexBufferEndPtr;
-    VertexTex1Xyzrhw vertexBuffer[0x18000];
+    //VertexTex1Xyzrhw vertexBuffer[0x18000];
+    VertexTex1Xyzrhw* vertexBuffer;
 
     u32 renderStateChangesThisFrame;
     u32 flushesThisFrame;

@@ -98,7 +98,7 @@ struct GfxCitro3d : GfxInterface
 
     // Added a deconstructor to make sure that the vertex buffer is released and C3D is released
     ~GfxCitro3d(){
-        linearFree(vertexBuffer);
+        //linearFree(vertexBuffer);
         C3D_Fini();
         gfxExit();
     }
@@ -144,6 +144,9 @@ struct GfxCitro3d : GfxInterface
         std::size_t texCoordStride;
         void *diffuseData;
         std::size_t diffuseStride;
+
+        f32* dummyTex;
+        u8* dummyDiffuse;
 
         Vertex3DS* vertexBuffer;
         C3D_BufInfo* vertexBufferInfo; 

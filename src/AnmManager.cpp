@@ -17,9 +17,14 @@
 #include <SDL2/SDL_rwops.h>
 #include <SDL2/SDL_surface.h>
 
-static VertexTex1Xyzrhw g_PrimitivesToDrawVertexBuf[4];
-static VertexTex1DiffuseXyzrhw g_PrimitivesToDrawNoVertexBuf[4];
-static VertexTex1DiffuseXyz g_PrimitivesToDrawUnknown[4];
+// static VertexTex1Xyzrhw g_PrimitivesToDrawVertexBuf[4];
+// static VertexTex1DiffuseXyzrhw g_PrimitivesToDrawNoVertexBuf[4];
+// static VertexTex1DiffuseXyz g_PrimitivesToDrawUnknown[4];
+
+static VertexTex1Xyzrhw* g_PrimitivesToDrawVertexBuf;
+static VertexTex1DiffuseXyzrhw* g_PrimitivesToDrawNoVertexBuf;
+static VertexTex1DiffuseXyz* g_PrimitivesToDrawUnknown;
+
 AnmManager *g_AnmManager;
 
 static const SDL_PixelFormatEnum g_TextureFormatSDLMapping[6] = {SDL_PIXELFORMAT_UNKNOWN,  SDL_PIXELFORMAT_RGBA32,
@@ -178,6 +183,11 @@ AnmManager::~AnmManager()
         this->dummyTextureHandle = 0;
     }
 
+    linearFree(this->vertexBuffer);
+    linearFree(g_PrimitivesToDrawVertexBuf);
+    linearFree(g_PrimitivesToDrawNoVertexBuf);
+    linearFree(g_PrimitivesToDrawUnknown);
+
     IMG_Quit();
 }
 
@@ -197,6 +207,10 @@ AnmManager::AnmManager()
     this->maybeLoadedSpriteCount = 0;
 
     std::memset(this, 0, sizeof(AnmManager));
+    this->vertexBuffer = static_cast<VertexTex1Xyzrhw*>(linearAlloc(137000 * sizeof(VertexTex1Xyzrhw)));
+    g_PrimitivesToDrawVertexBuf = static_cast<VertexTex1Xyzrhw*>(linearAlloc(4 * sizeof(VertexTex1Xyzrhw)));
+    g_PrimitivesToDrawNoVertexBuf = static_cast<VertexTex1DiffuseXyzrhw*>(linearAlloc(4 * sizeof(VertexTex1DiffuseXyz)));
+    g_PrimitivesToDrawUnknown = static_cast<VertexTex1DiffuseXyz*>(linearAlloc(4 * sizeof(VertexTex1DiffuseXyz)));
     ClearVertexBuffer();
 
     for (i32 spriteIndex = 0; spriteIndex < ARRAY_SIZE_SIGNED(this->sprites); spriteIndex++)
@@ -921,6 +935,7 @@ ZunResult AnmManager::DrawOrthographic(const AnmVm *vm, bool roundToPixel, bool 
 
     if (((g_Supervisor.cfg.opts >> GCOS_DONT_USE_VERTEX_BUF) & 1) == 0)
     {
+        printf("using vertex buffer");
         this->AddSpriteToDrawBuffer(g_PrimitivesToDrawVertexBuf);
         /*this->SetAttributePointer(VERTEX_ARRAY_POSITION, sizeof(*g_PrimitivesToDrawVertexBuf),
                                   &g_PrimitivesToDrawVertexBuf[0].position);
@@ -2234,7 +2249,9 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
 
     delete[] surfaceData;
 
-    VertexTex1DiffuseXyz verts[4];
+    VertexTex1DiffuseXyz* verts;
+
+    verts = static_cast<VertexTex1DiffuseXyz*>(linearAlloc(4*sizeof(VertexTex1DiffuseXyz)));
 
     verts[0].position = ZunVec3(dstRect.x, dstRect.y, 0.0f);
     verts[1].position = ZunVec3(dstRect.x + dstRect.w, dstRect.y, 0.0f);
@@ -2269,5 +2286,6 @@ void AnmManager::ApplySurfaceToColorBuffer(SDL_Surface *src, const SDL_Rect &src
     this->SetCurrentTexture(0);
     // this->SetCurrentBlendMode(0xff);
 
+    //linearFree(verts);
     originalViewport.Set();
 }

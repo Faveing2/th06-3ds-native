@@ -724,7 +724,9 @@ ZunResult GuiImpl::DrawDialogue() const
     {
         dialogueBoxHeight = 48.0f;
     }
-    VertexDiffuseXyzrhw vertices[4];
+    VertexDiffuseXyzrhw *vertices;
+
+    vertices = static_cast<VertexDiffuseXyzrhw*>(linearAlloc(4*sizeof(VertexDiffuseXyzrhw)));
     // Probably not what Zun wrote, but I don't like Zun's design. My guess is
     // Zun made a separate vertex structure with a ZunVec3 for the xyz, a
     // separate f32 for the w, and a D3DCOLOR for the diffuse. This kinda makes
@@ -803,6 +805,8 @@ ZunResult GuiImpl::DrawDialogue() const
     g_AnmManager->DrawNoRotation(&this->msg.dialogueLines[1]);
     g_AnmManager->DrawNoRotation(&this->msg.introLines[0]);
     g_AnmManager->DrawNoRotation(&this->msg.introLines[1]);
+
+    //linearFree(vertices);
     return ZUN_SUCCESS;
 }
 

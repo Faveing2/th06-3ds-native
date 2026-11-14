@@ -159,19 +159,23 @@ GfxInterface *GfxCitro3d::Init(){
 
     C3D_FogGasMode(GPU_FOG,GPU_PLAIN_DENSITY,false);
 
-    // Define the fixed sized vertex buffer
-    self->vertexBuffer = static_cast<Vertex3DS*>(linearAlloc(MAX_VERTICES * sizeof(Vertex3DS)));
+    // // Define the fixed sized vertex buffer
+    // self->vertexBuffer = static_cast<Vertex3DS*>(linearAlloc(MAX_VERTICES * sizeof(Vertex3DS)));
 
-    if(!self->vertexBuffer){
-        // Switch this to a debug later
-        printf("Failed to allocate vertex buffer, exiting");
-        delete self;
-        return NULL;
-    }
+    // if(!self->vertexBuffer){
+    //     // Switch this to a debug later
+    //     printf("Failed to allocate vertex buffer, exiting");
+    //     delete self;
+    //     return NULL;
+    // }
 
     self->vertexBufferInfo = C3D_GetBufInfo();
-	BufInfo_Init(self->vertexBufferInfo);
-	BufInfo_Add(self->vertexBufferInfo, self->vertexBuffer, sizeof(Vertex3DS), 3, 0x210);
+    self->dummyTex = static_cast<f32*>(linearAlloc(2 * sizeof(f32)));
+    self->dummyDiffuse = static_cast<u8*>(linearAlloc(4 * sizeof(u8)));
+    std::memset(self->dummyTex, 0.0f, 2*sizeof(f32));
+    std::memset(self->dummyDiffuse, 0, 4*sizeof(u8));
+	//BufInfo_Init(self->vertexBufferInfo);
+	//BufInfo_Add(self->vertexBufferInfo, self->vertexBuffer, sizeof(Vertex3DS), 3, 0x210);
 
     C3D_DirtyTexEnv(self->env);
 
@@ -186,7 +190,7 @@ GfxInterface *GfxCitro3d::Init(){
 
 // This is never called huh
 void GfxCitro3d::Exit(){
-    linearFree(this->vertexBuffer);
+    //linearFree(this->vertexBuffer);
     C3D_Fini();
     gfxExit();
 }
@@ -293,19 +297,24 @@ void GfxCitro3d::ToggleVertexAttribute(u8 attr, bool enable){
 
 void GfxCitro3d::SetAttributePointer(VertexAttributeArrays attr, std::size_t stride, void *ptr){
 
+    BufInfo_Init(this->vertexBufferInfo);
+
     switch (attr)
     {
     case VERTEX_ARRAY_POSITION:
         this->vertexData = ptr;
         this->vertexStride = stride;
+        BufInfo_Add(this->vertexBufferInfo, ptr, stride, 1, 0x0);
         break;
     case VERTEX_ARRAY_TEX_COORD:
         this->texCoordData = ptr;
         this->texCoordStride = stride;
+        BufInfo_Add(this->vertexBufferInfo, ptr, stride, 1, 0x1);
         break;
     case VERTEX_ARRAY_DIFFUSE:
         this->diffuseData = ptr;
         this->diffuseStride = stride;
+        BufInfo_Add(this->vertexBufferInfo, ptr, stride, 1, 0x2);
         break;
     }
 }
@@ -867,59 +876,75 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     // fog LUT must be generated after the engine has set the projection matrix
     this->setFogLut();
 
-    if((this->vertexCount + count) >= MAX_VERTICES){
-        printf("Vertex buffer is full, skipping draw\n");
-        //Should I kill the app or just skip the draw call? hmm
-        return;
+    //BufInfo_Init(this->vertexBufferInfo);
+
+    BufInfo_Add(this->vertexBufferInfo, this->vertexData, this->vertexStride, 1, 0x0);
+
+    if(this->useTexCoord){
+        BufInfo_Add(this->vertexBufferInfo, this->texCoordData, this->texCoordStride, 1, 0x1); 
+    }else{
+        BufInfo_Add(this->vertexBufferInfo, this->dummyTex, 2*sizeof(f32), 0, 0x1); 
+    }
+    if(this->useDiffuse){
+        BufInfo_Add(this->vertexBufferInfo, this->diffuseData, this->diffuseStride, 1, 0x2); 
+    }else{
+        BufInfo_Add(this->vertexBufferInfo, this->dummyDiffuse, 4*sizeof(u8), 0, 0x2); 
     }
 
-    u32 firstVertex = this->vertexWriteOffset;
+    C3D_SetBufInfo(this->vertexBufferInfo);
 
-    const u8* base_pos = (const u8*)(this->vertexData);
-    const u8* base_tex = (const u8*)(this->texCoordData);
-    const u8* base_diffuse = (const u8*)(this->diffuseData);
+    // if((this->vertexCount + count) >= MAX_VERTICES){
+    //     printf("Vertex buffer is full, skipping draw\n");
+    //     //Should I kill the app or just skip the draw call? hmm
+    //     return;
+    // }
 
-    // The first case I'm pretty sure never runs.
-    if(this->useTexCoord && this->useDiffuse){
-        printf("Does this ever run\n");
-        for(int i = 0; i < count; i++){
-                const u8* vertex_pos = base_pos + i * this->vertexStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
+    // u32 firstVertex = this->vertexWriteOffset;
 
-                const u8* vertex_tex = base_tex + i * this->texCoordStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex, 2*sizeof(f32));
+    // const u8* base_pos = (const u8*)(this->vertexData);
+    // const u8* base_tex = (const u8*)(this->texCoordData);
+    // const u8* base_diffuse = (const u8*)(this->diffuseData);
 
-                const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
-        }
-    }else if(this->useTexCoord && !this->useDiffuse){
-        for(int i = 0; i < count; i++){
-                const u8* vertex_pos = base_pos + i * this->vertexStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
+    // // The first case I'm pretty sure never runs.
+    // if(this->useTexCoord && this->useDiffuse){
+    //     printf("Does this ever run\n");
+    //     for(int i = 0; i < count; i++){
+    //             const u8* vertex_pos = base_pos + i * this->vertexStride;
+    //             std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
 
-                const u8* vertex_tex = base_tex + i * this->texCoordStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex, 2*sizeof(f32));
+    //             const u8* vertex_tex = base_tex + i * this->texCoordStride;
+    //             std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex, 2*sizeof(f32));
 
-                this->vertexBuffer[firstVertex+i].r = 0;
-                this->vertexBuffer[firstVertex+i].g = 0;
-                this->vertexBuffer[firstVertex+i].b = 0;
-                this->vertexBuffer[firstVertex+i].a = 0; 
-        }
-    }else if(!this->useTexCoord && this->useDiffuse){
-        for(int i = 0; i < count; i++){
-                const u8* vertex_pos = base_pos + i * this->vertexStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
+    //             const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
+    //             std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
+    //     }
+    // }else if(this->useTexCoord && !this->useDiffuse){
+    //     for(int i = 0; i < count; i++){
+    //             const u8* vertex_pos = base_pos + i * this->vertexStride;
+    //             std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
 
-                this->vertexBuffer[firstVertex+i].u = 0.0f;
-                this->vertexBuffer[firstVertex+i].v = 0.0f;
+    //             const u8* vertex_tex = base_tex + i * this->texCoordStride;
+    //             std::memcpy(&this->vertexBuffer[firstVertex+i].u, vertex_tex, 2*sizeof(f32));
+
+    //             this->vertexBuffer[firstVertex+i].r = 0;
+    //             this->vertexBuffer[firstVertex+i].g = 0;
+    //             this->vertexBuffer[firstVertex+i].b = 0;
+    //             this->vertexBuffer[firstVertex+i].a = 0; 
+    //     }
+    // }else if(!this->useTexCoord && this->useDiffuse){
+    //     for(int i = 0; i < count; i++){
+    //             const u8* vertex_pos = base_pos + i * this->vertexStride;
+    //             std::memcpy(&this->vertexBuffer[firstVertex+i].x, vertex_pos, 3*sizeof(f32));
+
+    //             this->vertexBuffer[firstVertex+i].u = 0.0f;
+    //             this->vertexBuffer[firstVertex+i].v = 0.0f;
             
-                const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
-                std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
-        }
-    }
+    //             const u8* vertex_diffuse = base_diffuse + i * this->diffuseStride;
+    //             std::memcpy(&this->vertexBuffer[firstVertex+i].r, vertex_diffuse, 4*sizeof(u8));
+    //     }
+    // }
 
-    this->vertexWriteOffset += count;
-    this->vertexCount += count;
+    //this->vertexWriteOffset += count
 
     if(this->use3d){
         // Left frame buffer
@@ -928,7 +953,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrixLeft);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
-        C3D_DrawArrays(C3DPrim, firstVertex, count); 
+        C3D_DrawArrays(C3DPrim, start, count); 
 
         // Now the right frame buffer
         C3D_FrameDrawOn(this->rightTarget);
@@ -936,13 +961,13 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrixRight);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
-        C3D_DrawArrays(C3DPrim, firstVertex, count); 
+        C3D_DrawArrays(C3DPrim, start, count); 
     }else{
         C3D_FrameDrawOn(this->leftTarget);
         C3D_SetViewport(this->targetX,this->targetY,this->screenH,this->screenW);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_projection,&this->projectionMatrix);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_modelView,&this->modelViewMatrix);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER,this->uLoc_textureMatrix,&this->textureMatrixMatrix);
-        C3D_DrawArrays(C3DPrim, firstVertex, count); 
+        C3D_DrawArrays(C3DPrim, start, count); 
     }
 }

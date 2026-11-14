@@ -63,7 +63,9 @@ ChainCallbackResult ScreenEffect::CalcFadeIn(ScreenEffect *effect)
 
 void ScreenEffect::DrawSquare(const ZunRect *rect, ZunColor rectColor)
 {
-    VertexDiffuseXyzrhw vertices[4];
+    VertexDiffuseXyzrhw* vertices;
+
+    vertices = static_cast<VertexDiffuseXyzrhw*>(linearAlloc(4*sizeof(VertexDiffuseXyzrhw)));
 
     if (g_AnmManager->currentTextureHandle == 0)
     {
@@ -101,6 +103,8 @@ void ScreenEffect::DrawSquare(const ZunRect *rect, ZunColor rectColor)
     g_AnmManager->SetColorOp(COMPONENT_RGB, COLOR_OP_MODULATE);
 
     g_AnmManager->SetDepthFunc(DEPTH_FUNC_LEQUAL);
+
+    //linearFree(vertices);
 }
 
 ChainCallbackResult ScreenEffect::CalcFadeOut(ScreenEffect *effect)
