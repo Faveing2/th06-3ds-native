@@ -16,30 +16,15 @@
 #include "i18n.hpp"
 #include "utils.hpp"
 
+
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
 
     i32 renderResult = 0;
-    //    MSG msg;
-    //    i32 waste1, waste2, waste3, waste4, waste5, waste6;
-
-    //    if (utils::CheckForRunningGameInstance())
-    //    {
-    //        g_GameErrorContext.Flush();
-    //
-    //        return 1;
-    //    }
-
-    //    g_Supervisor.hInstance = hInstance;
 
     romfsInit();
-
-    utils::DebugPrint("Starting");
-
-    // Is controller even initalized??
-    //Controller::ResetKeyboard();
 
     if (g_Supervisor.LoadConfig(TH_CONFIG_FILE) != ZUN_SUCCESS)
     {
@@ -70,6 +55,14 @@ restart:
         g_GameErrorContext.Flush();
         return 1;
     }
+
+    // if(!logFile){
+    //     std::printf(
+    //         "fopen failed: %s\n",
+    //         std::strerror(errno)
+    //     );
+    // }
+
 
     g_SoundPlayer.InitializeDSound();
     Controller::GetJoystickCaps();

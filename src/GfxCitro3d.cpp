@@ -164,7 +164,7 @@ GfxInterface *GfxCitro3d::Init(){
 
     if(!self->vertexBuffer){
         // Switch this to a debug later
-        printf("Failed to allocate vertex buffer, exiting");
+        g_GameErrorContext.Fatal("Failed to allocate vertex buffer, exiting");
         delete self;
         return NULL;
     }
@@ -180,6 +180,8 @@ GfxInterface *GfxCitro3d::Init(){
     }else{
         self->SetFullScreen(true);
     }
+
+    utils::DebugPrint2("GfxCitro3d Initialized");
 
     return self;
 }   
@@ -868,8 +870,7 @@ void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
     this->setFogLut();
 
     if((this->vertexCount + count) >= MAX_VERTICES){
-        printf("Vertex buffer is full, skipping draw\n");
-        //Should I kill the app or just skip the draw call? hmm
+        g_GameErrorContext.Log("Vertex buffer is full, skipping draw\n");
         return;
     }
 

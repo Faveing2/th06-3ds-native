@@ -7,6 +7,8 @@
 #include <SDL2/SDL_Log.h>
 #endif
 
+#include <SDL2/SDL_Log.h>
+
 #include "ZunMath.hpp"
 #include "i18n.hpp"
 #include "utils.hpp"
@@ -15,18 +17,10 @@ namespace utils
 {
 void DebugPrint(const char *fmt, ...)
 {
-#ifdef DEBUG
-    char tmpBuffer[512];
-    std::va_list args;
-
-    va_start(args, fmt);
-    std::vsnprintf(tmpBuffer, 511, fmt, args);
-    //SDL_Log(tmpBuffer);
-    va_end(args);
-#endif
-#ifdef _3DS_DEBUG
+    //SDL_Log(fmt);
+    #ifdef _3DS_DEBUG
     SDL_Log(fmt);
-#endif
+    #endif
 }
 
 f32 AddNormalizeAngle(f32 a, f32 b)
@@ -63,18 +57,9 @@ void Rotate(ZunVec3 *outVector, const ZunVec3 *point, f32 angle)
 
 void DebugPrint2(const char *fmt, ...)
 {
-#ifdef DEBUG
-    char tmpBuffer[512];
-    std::va_list args;
-
-    va_start(args, fmt);
-    std::vsnprintf(tmpBuffer, 511, fmt, args);
-    va_end(args);
-
-    std::printf("DEBUG2: %s\n", tmpBuffer);
-#endif
-#ifdef _3DS_DEBUG
+    //SDL_Log(fmt);
+    #ifdef _3DS_DEBUG
     SDL_Log(fmt);
-#endif
+    #endif
 }
 }; // namespace utils
