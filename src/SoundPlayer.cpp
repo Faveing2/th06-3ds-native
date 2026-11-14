@@ -620,10 +620,10 @@ void SoundPlayer::MixAudio(u32 samples)
 void SoundPlayer::BackgroundMusicPlayerThread()
 {
 
-    // Aim to keep 6 frames of audio in the buffer
-    const int targetFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 6;
-    const int lowFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 5;
-    const int minChunk = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60);
+    // Aim to keep 10 frames of audio in the buffer (These values affect audio quality and performance so there can be further optimization here)
+    const int targetFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 10; // Target frames in queue
+    const int lowFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 7; // When we want to start refilling the queue
+    const int minChunk = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 1; // If there are delays put 1 frame in the queue (Higher values seem to cause performance issues?)
 
     SDL_PauseAudioDevice(this->audioDev, 0);
 
