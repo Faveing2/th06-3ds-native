@@ -6,6 +6,8 @@
 
 This project is a port of [GensokyoClub's Th06 Decomplilation](https://github.com/GensokyoClub/th06) to the 3ds using the Citro3d graphics library.
 
+*Only tested on the New3ds, Old3ds compatibility and performance is current unknown*
+
 # Features
 
 - Switch between 5:3 and 4:3 aspect ratio using display mode in options.
@@ -22,14 +24,20 @@ This project is a port of [GensokyoClub's Th06 Decomplilation](https://github.co
 # Installing
 
 Obtain the following files/folders from a legally obtained copy of Touhou 6 (v1.02) and copy the following into a folder `th06` on the root of your 3ds sdcard.
-- `bgm/`
-- `紅魔郷CM.DAT`
-- `紅魔郷ED.DAT`
-- `紅魔郷IN.DAT`
-- `紅魔郷MD.DAT`
-- `紅魔郷ST.DAT`
-- `紅魔郷TL.DAT`
-- `msgothic.ttc`
+
+```
+sdmc
+ |- th06
+     |- bgm/
+     |- 紅魔郷CM.DAT
+     |- 紅魔郷ED.DAT
+     |- 紅魔郷IN.DAT
+     |- 紅魔郷MD.DAT
+     |- 紅魔郷CM.DAT
+     |- 紅魔郷CM.DAT
+     |- msgothic.ttc
+```
+*kochi-gothic can be used just rename the file to msgothic.ttc*
 
 Download and install the CIA/3dsx file from the releases section or scan this QR code in FBI:
 
@@ -66,10 +74,8 @@ Clone this repository and run
 make
 ```
 
-# TODO
-
 # AI Disclaimer
-AI was used to aid in debugging code. However all changes from GensolyoClub's source code was written by myself. 
+AI was used to aid in debugging code. However all changes from GensokyoClub's source code was written by myself. 
 
 # Credits
 
