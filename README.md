@@ -74,6 +74,12 @@ Clone this repository and run
 make
 ```
 
+# Future Work
+- Adjust the game to utilize the bottom screen of the 3ds
+- Old3ds performance improvement
+- Allow 3ds buttons to be remapped
+- OpenDSP support 
+
 # AI Disclaimer
 AI was used to aid in debugging code. However all changes from GensokyoClub's source code was written by myself. 
 
