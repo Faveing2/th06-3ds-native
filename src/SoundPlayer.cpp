@@ -619,41 +619,34 @@ void SoundPlayer::MixAudio(u32 samples)
 //   in a thread keeps sound running continuously, even if the main thread runs into lag
 void SoundPlayer::BackgroundMusicPlayerThread()
 {
-    SDL_PauseAudioDevice(this->audioDev, 0);
 
-    u32 latencyLimit = 14'700; // ~5 frames
-    u64 samplesSent = 0;
-    u64 startTick = SDL_GetTicks64();
+    // Aim to keep 10 frames of audio in the buffer
+    const int targetFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 10;
+    const int lowFrames = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60) * 5;
+    const int minChunk = (BACKGROUND_MUSIC_WAV_SAMPLE_RATE/60);
+
+    SDL_PauseAudioDevice(this->audioDev, 0);
 
     while (1)
     {
-        u64 curTicks = SDL_GetTicks64();
+        int framesToQueue = 0;
 
-        // Keep slightly more than 1 frame's worth of samples in the audio buffer at all times
-        i32 targetSamples = (curTicks - startTick) * 44.100 - samplesSent + 1024;
-
-        // Quick and dirty checks to keep audio latency low
-        //   Can probably be horribly broken, but I don't have weaker hardware to test on
-        if (SDL_GetQueuedAudioSize(this->audioDev) > latencyLimit)
-        {
-            latencyLimit += 2'940; // 1 frame
-            samplesSent += targetSamples;
-            targetSamples = 0;
-        }
-        else if (targetSamples > 1024)
-        {
-            samplesSent += targetSamples - 1024;
-            targetSamples = 1024;
+        // SDL_GetQueuedAudioSize returns amount of bytes in the que, so divide it by 4 to convert it to samples
+        u32 queuedSamples = SDL_GetQueuedAudioSize(this->audioDev)/4;
+        
+        if(queuedSamples < lowFrames){
+            if((targetFrames - queuedSamples) > minChunk){
+                framesToQueue = minChunk;
+            }else{
+                framesToQueue = targetFrames - queuedSamples;
+            }
         }
 
-        if (targetSamples > 0)
-        {
-            this->MixAudio(targetSamples * 2);
-            samplesSent += targetSamples;
+        if(framesToQueue > 0){
+            this->MixAudio(framesToQueue * 2);
         }
 
-        if (this->terminateFlag)
-        {
+        if(this->terminateFlag){
             return;
         }
 
