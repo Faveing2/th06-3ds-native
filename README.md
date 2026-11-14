@@ -67,7 +67,6 @@ make
 ```
 
 # TODO
-- Fix sound not playing when using Azahar
 
 # AI Disclaimer
 AI was used to aid in debugging code. However all changes from GensolyoClub's source code was written by myself. 
