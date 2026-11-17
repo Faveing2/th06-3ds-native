@@ -13,6 +13,8 @@
 #include <new>
 #include <vector>
 
+#include <opendsp.h>
+
 // This would all be a lot easier with SDL_mixer, but SDL_mixer doesn't permit any way of doing custom
 //   loop points that would be accurate to the sample like EoSD needs. So instead we get to read WAVs and
 //   mix everything by hand. Yay
