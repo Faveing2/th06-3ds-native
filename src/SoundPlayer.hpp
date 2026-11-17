@@ -8,6 +8,8 @@
 #include <mutex>
 #include <thread>
 
+#include <opendsp.h>
+#include <opendsp/audio.h>
 enum SoundIdx
 {
     NO_SOUND = -1,
@@ -76,6 +78,10 @@ struct MusicStream
     u32 fadeoutProgress;
 };
 
+struct BGM{
+    const char *path;
+};
+
 struct SoundPlayer
 {
     SoundPlayer();
@@ -103,7 +109,9 @@ struct SoundPlayer
     std::thread backgroundMusicThreadHandle;
     std::atomic_bool terminateFlag;
     i32 soundBuffersToPlay[3];
-    MusicStream backgroundMusic;
+    //MusicStream backgroundMusic;
+    BGM backgroundMusic;
+    opendspAudioStream *bgm = NULL;
     bool isLooping;
 };
 
