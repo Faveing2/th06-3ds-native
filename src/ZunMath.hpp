@@ -620,22 +620,22 @@ inline ZunMatrix perspectiveMatrixFromFOV_Left(f32 verticalFOV, f32 aspectRatio,
     float iod = osGet3DSliderState() / SLIDER_FACTOR;
     float focalLength = FOCAL_LENGTH;
 
-    Mtx_PerspStereoTilt(&tempMtx, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, -iod, focalLength, true);
+    Mtx_PerspStereo(&picoPerspectiveMatrix, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, -iod, focalLength, true);
 
 
     // These must be rotated by 90 degrees because Mtx_PerspStereoTilt takes into account the screen rotation, so the rotation of -90 degrees I do in the driver has to be reversed :)
-    Mtx_Identity(&correctionMatrix);
-    Mtx_RotateZ(
-        &correctionMatrix,
-        M_PI / 2.0f,
-        false
-    );
+    // Mtx_Identity(&correctionMatrix);
+    // Mtx_RotateZ(
+    //     &correctionMatrix,
+    //     M_PI / 2.0f,
+    //     false
+    // );
 
-    Mtx_Multiply(
-        &picoPerspectiveMatrix,
-        &correctionMatrix,
-        &tempMtx
-    );
+    // Mtx_Multiply(
+    //     &picoPerspectiveMatrix,
+    //     &correctionMatrix,
+    //     &tempMtx
+    // );
 
     perspectiveMatrix.m[0][0] = picoPerspectiveMatrix.r[0].x;
     perspectiveMatrix.m[0][1] = picoPerspectiveMatrix.r[1].x;
@@ -689,21 +689,21 @@ inline ZunMatrix perspectiveMatrixFromFOV_Right(f32 verticalFOV, f32 aspectRatio
     float iod = osGet3DSliderState() / SLIDER_FACTOR;
     float focalLength = FOCAL_LENGTH;
 
-    Mtx_PerspStereoTilt(&tempMtx, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, iod, focalLength, true);
+    Mtx_PerspStereo(&picoPerspectiveMatrix, (float)verticalFOV, (float)aspectRatio, (float)nearPlane, (float)farPlane, iod, focalLength, true);
 
     // These must be rotated by 90 degrees because Mtx_PerspStereoTilt takes into account the screen rotation, so the rotation of -90 degrees I do in the driver has to be reversed :)
-    Mtx_Identity(&correctionMatrix);
-    Mtx_RotateZ(
-        &correctionMatrix,
-        M_PI / 2.0f,
-        false
-    );
+    // Mtx_Identity(&correctionMatrix);
+    // Mtx_RotateZ(
+    //     &correctionMatrix,
+    //     M_PI / 2.0f,
+    //     false
+    // );
 
-    Mtx_Multiply(
-        &picoPerspectiveMatrix,
-        &correctionMatrix,
-        &tempMtx
-    );
+    // Mtx_Multiply(
+    //     &picoPerspectiveMatrix,
+    //     &correctionMatrix,
+    //     &tempMtx
+    // );
 
     perspectiveMatrix.m[0][0] = picoPerspectiveMatrix.r[0].x;
     perspectiveMatrix.m[0][1] = picoPerspectiveMatrix.r[1].x;

@@ -49,6 +49,7 @@ RenderResult GameWindow::Render()
 
     if (this->curFrame == 0)
     {
+    //printf("START FRAME\n");
     RUN_CHAINS:
         if (g_Supervisor.cfg.frameskipConfig <= this->curFrame)
         {
@@ -96,8 +97,9 @@ RenderResult GameWindow::Render()
         this->curFrame++;
     }
 
-    if (g_Supervisor.cfg.windowed || g_Supervisor.ShouldRunAt60Fps())
+    if (g_Supervisor.ShouldRunAt60Fps())
     {
+        //printf("Running here");
         if (this->curFrame != 0)
         {
             g_Supervisor.framerateMultiplier = 1.0;
@@ -109,6 +111,7 @@ RenderResult GameWindow::Render()
             delta = std::fabs(slowdown - g_LastFrameTime);
             if (delta >= FRAME_TIME)
             {
+                printf("SLOWDOWN\n");
                 do
                 {
                     g_LastFrameTime += FRAME_TIME;
@@ -172,6 +175,7 @@ RenderResult GameWindow::Render()
 
 void GameWindow::Present()
 {
+    //printf("FRAME END\n");
     // In D3D, this was done after the present call, but SDL makes no guarantees
     // about the color buffer state immediately after a swap, so it has to be moved to be before it
     g_AnmManager->TakeScreenshotIfRequested();
