@@ -125,7 +125,7 @@ struct SoundPlayer
     //MusicStream backgroundMusic;
     BGM backgroundMusic;
     opendspAudioStream *bgm = NULL;
-    AudioChannel sfx[12];
+    AudioChannel sfx[22];
     f32 mixVol[12];
 
     u32 sfx_pointer = 1;

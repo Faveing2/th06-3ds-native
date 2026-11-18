@@ -27,7 +27,7 @@
 #define BACKGROUND_MUSIC_WAV_BLOCK_ALIGN (BACKGROUND_MUSIC_WAV_BITS_PER_SAMPLE / 8 * BACKGROUND_MUSIC_WAV_NUM_CHANNELS)
 #define BACKGROUND_MUSIC_WAV_BYTE_RATE (BACKGROUND_MUSIC_WAV_BLOCK_ALIGN * BACKGROUND_MUSIC_WAV_SAMPLE_RATE)
 
-#define CHANNEL_COUNT 12
+#define CHANNEL_COUNT 22
 // DirectSound deals with volume by subtracting a number measured in hundredths of decibels from the source sound.
 //   The scale is from 0 (no volume modification) to -10,000 (subtraction of 100 decibels, and basically silent).
 //   20 decibels affects wave amplitude by a factor of 10
@@ -141,6 +141,8 @@ ZunResult SoundPlayer::LoadPos(const char *path)
 ZunResult SoundPlayer::InitSoundBuffers()
 {
 
+    std::fill_n(this->soundBuffersToPlay, ARRAY_SIZE(this->soundBuffersToPlay), -1);
+
     for(i32 i = 0; i < ARRAY_SIZE_SIGNED(g_SoundBufferIdxVol); i++){
         //We're using a 32 element array to index a 25 element array?
         if(this->LoadSound(i, g_SFXList[g_SoundBufferIdxVol[i].bufferIdx], 1.0f / ZUN_POWF(10.0f, (float)g_SoundBufferIdxVol[i].volume / -2000)) != ZUN_SUCCESS){
@@ -169,9 +171,7 @@ ZunResult SoundPlayer::LoadSound(i32 idx, const char *path, f32 volumeMultiplier
     wavRawData = (u8 *)FileSystem::OpenPath(fullPath.c_str(), 1);
 
     if(wavRawData == NULL){
-        printf("Could not load %s\n", fullPath);
-
-        // Can't be one call :(
+        //I'm truly sry anyone that has to look at this 
         FileSystem::CreateDir("/th06/data");
         FileSystem::CreateDir("/th06/data/wav");
 
@@ -184,12 +184,22 @@ ZunResult SoundPlayer::LoadSound(i32 idx, const char *path, f32 volumeMultiplier
         {
             sampleConversionDesc.len = wavRawSampleByteCount;
             sampleConversionDesc.buf = new u8[wavRawSampleByteCount * sampleConversionDesc.len_mult];
+
             std::memcpy(sampleConversionDesc.buf, wavRawSamples, wavRawSampleByteCount);
 
             SDL_ConvertAudio(&sampleConversionDesc);
 
-            printf("saving file %s", fullPath);
-            SaveWav(fullPath.c_str(), sampleConversionDesc.buf, sampleConversionDesc.len_cvt, wavFormat.freq, wavFormat.channels);
+            const size_t sampleCount = sampleConversionDesc.len_cvt / sizeof(int16_t);
+
+            std::vector<int16_t> samples(sampleCount);
+
+            std::memcpy(samples.data(), sampleConversionDesc.buf, sampleConversionDesc.len_cvt);
+
+            for(u32 i=0; i<sampleCount; i++){
+                samples[i] *= volumeMultiplier;
+            }
+
+            SaveWav(fullPath.c_str(), reinterpret_cast<uint8_t*>(samples.data()), sampleConversionDesc.len_cvt, 44100, 1);
 
             delete[] sampleConversionDesc.buf;
         }
@@ -205,7 +215,7 @@ ZunResult SoundPlayer::LoadSound(i32 idx, const char *path, f32 volumeMultiplier
     this->sfx_obj[idx].path = fullPath;
     this->sfx_obj[idx].volume = volumeMultiplier;
 
-    printf("Loaded sound %s idx:%i", this->sfx_obj[idx].path.c_str(), idx);
+    //printf("Loaded sound %s idx:%i\n", this->sfx_obj[idx].path.c_str(), idx);
     return ZUN_SUCCESS;
 }
 
@@ -229,47 +239,81 @@ ZunResult SoundPlayer::PlayBGM(bool isLooping)
 
 void SoundPlayer::PlaySounds()
 {
-    //printf("PLAY SOUNDS");
+    i32 idx;
+    i32 sndBufIdx;
+
+    for (idx = 0; idx < ARRAY_SIZE_SIGNED(this->soundBuffersToPlay); idx++)
+    {
+        if (this->soundBuffersToPlay[idx] < 0)
+        {
+            break;
+        }
+
+        sndBufIdx = this->soundBuffersToPlay[idx];
+        this->soundBuffersToPlay[idx] = -1;
+
+        AudioChannel& channel = this->sfx[this->sfx_obj[sndBufIdx].boundTo];
+
+        opendspAudioStop(channel.stream);
+        opendspAudioPlay(channel.stream);
+
+    }
 }
 
 void SoundPlayer::PlaySoundByIdx(SoundIdx idx)
 {
 
-    if(idx == NO_SOUND){
+    if(idx != NO_SOUND){
+        SoundEffect& sound = this->sfx_obj[idx];
+
+        if(!sound.isBound){
+            const u32 channelIdx = this->sfx_pointer % CHANNEL_COUNT;
+            AudioChannel& channel = this->sfx[this->sfx_pointer];
+
+            // If the channel is already in use
+            if(channel.stream != nullptr){
+                u32 oldSoundIdx = channel.boundTo;
+
+                opendspAudioClose(&channel.stream);
+
+                this->sfx_obj[oldSoundIdx].isBound = false;
+                this->sfx_obj[oldSoundIdx].boundTo = 1000;
+            }
+
+            opendspAudioOpen(&channel.stream, sound.path.c_str(), NULL);
+            //opendspAudioSetVolume(channel.stream, sound.volume);
+
+            channel.boundTo = idx;
+            sound.boundTo = channelIdx;
+            sound.isBound = true;
+
+            this->mixVol[channelIdx] = sound.volume;
+
+            this->sfx_pointer = (channelIdx + 1) % CHANNEL_COUNT;
+        }
+    }
+
+    u32 i;
+
+    for (i = 0; i < ARRAY_SIZE(this->soundBuffersToPlay); i++)
+    {
+        if (this->soundBuffersToPlay[i] < 0)
+        {
+            break;
+        }
+
+        if (this->soundBuffersToPlay[i] == idx)
+        {
+            return;
+        }
+    }
+
+    if (i >= 3)
+    {
         return;
     }
 
-    SoundEffect& sound = this->sfx_obj[idx];
-
-    if(!sound.isBound){
-        const u32 channelIdx = this->sfx_pointer % CHANNEL_COUNT;
-        AudioChannel& channel = this->sfx[this->sfx_pointer];
-
-        // If the channel is already in use
-        if(channel.stream != nullptr){
-            u32 oldSoundIdx = channel.boundTo;
-
-            opendspAudioClose(&channel.stream);
-
-            this->sfx_obj[oldSoundIdx].isBound = false;
-            this->sfx_obj[oldSoundIdx].boundTo = 1000;
-        }
-
-        opendspAudioOpen(&channel.stream, sound.path.c_str(), NULL);
-        opendspAudioSetVolume(channel.stream, sound.volume);
-
-        channel.boundTo = idx;
-        sound.boundTo = channelIdx;
-        sound.isBound = true;
-
-        this->mixVol[channelIdx] = sound.volume;
-
-        this->sfx_pointer = (channelIdx + 1) % CHANNEL_COUNT;
-    }
-
-    AudioChannel& channel = this->sfx[sound.boundTo];
-    opendspAudioStop(channel.stream);
-    opendspAudioPlay(channel.stream);
+    this->soundBuffersToPlay[i] = idx;
 
     // if(!this->sfx_obj[idx].isBound){
 
