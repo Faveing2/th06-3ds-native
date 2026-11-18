@@ -82,6 +82,19 @@ struct BGM{
     const char *path;
 };
 
+struct SoundEffect{
+    f32 volume = 1.0f;
+    std::string path;
+    bool isBound = false;
+    u32 boundTo = 0;
+    i32 idx;
+};
+
+struct AudioChannel{
+    opendspAudioStream *stream = NULL;
+    u32 boundTo = 0;
+};
+
 struct SoundPlayer
 {
     SoundPlayer();
@@ -112,6 +125,13 @@ struct SoundPlayer
     //MusicStream backgroundMusic;
     BGM backgroundMusic;
     opendspAudioStream *bgm = NULL;
+    AudioChannel sfx[12];
+    f32 mixVol[12];
+
+    u32 sfx_pointer = 1;
+
+    SoundEffect sfx_obj[32];
+    u32 boundEffects = 0;
     bool isLooping;
 };
 
