@@ -10,6 +10,8 @@
 
 #include <opendsp.h>
 #include <opendsp/audio.h>
+#include <3ds.h>
+
 enum SoundIdx
 {
     NO_SOUND = -1,
@@ -58,6 +60,7 @@ struct SoundData
     i16 *samples;
     u32 pos;
     u32 len;
+    float vol;
     bool isPlaying;
 };
 
@@ -114,9 +117,12 @@ struct SoundPlayer
     ZunResult LoadPos(const char *path);
 
     void BackgroundMusicPlayerThread();
-    void MixAudio(u32 samples);
+    void MixAudio();
 
     void BindChannel(SoundIdx idx);
+    void PlayBufferAndMix(i32 idx);
+    void GetCurrentPlaying();
+    void NormalizeChannels();
 
     SoundData soundBuffers[128];
     std::mutex soundBufMutex;
@@ -132,8 +138,16 @@ struct SoundPlayer
 
     u32 sfx_pointer = 1;
 
+    ndspWaveBuf waveBuffers[22];
+    u32 waveBuffersUsed = 2;
+
     SoundEffect sfx_obj[32];
     u32 boundEffects = 0;
+
+    int playingChannels = 0;
+    bool channelActive[22];
+    float channelVolumes[22];
+
     bool isLooping;
 };
 

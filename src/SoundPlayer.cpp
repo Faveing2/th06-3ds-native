@@ -16,6 +16,7 @@
 
 #include <opendsp.h>
 #include <opendsp/audio.h>
+#include <3ds.h>
 
 // This would all be a lot easier with SDL_mixer, but SDL_mixer doesn't permit any way of doing custom
 //   loop points that would be accurate to the sample like EoSD needs. So instead we get to read WAVs and
@@ -95,9 +96,11 @@ SoundPlayer::SoundPlayer()
 
 ZunResult SoundPlayer::InitializeDSound()
 {
-
+    
     opendspInit();
     opendspAudioInit((1u << 24) - 1);
+
+    this->backgroundMusicThreadHandle = std::thread(&SoundPlayer::BackgroundMusicPlayerThread, this);
 
     return ZUN_SUCCESS;
 }
@@ -105,6 +108,7 @@ ZunResult SoundPlayer::InitializeDSound()
 ZunResult SoundPlayer::Release(void)
 {
     opendspAudioClose(&this->bgm);
+    this->terminateFlag = true;
     // Do not reset this back to null
     //this->bgm = NULL;
 
@@ -115,7 +119,7 @@ void SoundPlayer::StopBGM()
 {
     printf("Stopping bgm\n");
     opendspAudioStop(this->bgm);
-    Release();
+   //Release();
 }
 
 void SoundPlayer::FadeOut(f32 seconds)
@@ -141,6 +145,9 @@ ZunResult SoundPlayer::LoadPos(const char *path)
 ZunResult SoundPlayer::InitSoundBuffers()
 {
 
+    opendspInit();
+    ndspSetOutputMode(NDSP_OUTPUT_STEREO);
+
     std::fill_n(this->soundBuffersToPlay, ARRAY_SIZE(this->soundBuffersToPlay), -1);
 
     for(i32 i = 0; i < ARRAY_SIZE_SIGNED(g_SoundBufferIdxVol); i++){
@@ -158,6 +165,8 @@ ZunResult SoundPlayer::LoadSound(i32 idx, const char *path, f32 volumeMultiplier
 {
     printf("Loadsound %s with %i\n", path, idx);
 
+    this->soundBufMutex.lock();
+
     SDL_AudioCVT sampleConversionDesc;
     SDL_AudioSpec wavFormat;
 
@@ -166,71 +175,51 @@ ZunResult SoundPlayer::LoadSound(i32 idx, const char *path, f32 volumeMultiplier
     u8 *wavDataToWrite;
     u32 wavRawSampleByteCount;
 
-    std::string fullPath = "/th06/" + std::string(path);
+    wavRawData = (u8 *)FileSystem::OpenPath(path, 0);
 
-    // Checking if the file exists is probably better than this :)
-    wavRawData = (u8 *)FileSystem::OpenPath(fullPath.c_str(), 1);
+    SDL_LoadWAV_RW(SDL_RWFromConstMem(wavRawData, g_LastFileSize),1, &wavFormat, &wavRawSamples, &wavRawSampleByteCount);
 
-    if(wavRawData == NULL){
-        //I'm truly sry anyone that has to look at this 
-        FileSystem::CreateDir("/th06/data");
-        FileSystem::CreateDir("/th06/data/wav");
+    SDL_BuildAudioCVT(&sampleConversionDesc, wavFormat.format, wavFormat.channels, wavFormat.freq, AUDIO_S16SYS, 1,44100);
+    sampleConversionDesc.len = wavRawSampleByteCount;
+    sampleConversionDesc.buf = new u8[wavRawSampleByteCount * sampleConversionDesc.len_mult];
 
-        wavRawData = (u8 *)FileSystem::OpenPath(path, 0);
+    std::memcpy(sampleConversionDesc.buf, wavRawSamples, wavRawSampleByteCount);
 
-        SDL_LoadWAV_RW(SDL_RWFromConstMem(wavRawData, g_LastFileSize),1, &wavFormat, &wavRawSamples, &wavRawSampleByteCount);
+    SDL_ConvertAudio(&sampleConversionDesc);
 
-        if (SDL_BuildAudioCVT(&sampleConversionDesc, wavFormat.format, wavFormat.channels, wavFormat.freq, AUDIO_S16SYS, 1,
-                            44100) == 1)
-        {
-            sampleConversionDesc.len = wavRawSampleByteCount;
-            sampleConversionDesc.buf = new u8[wavRawSampleByteCount * sampleConversionDesc.len_mult];
+    const size_t sampleCount = sampleConversionDesc.len_cvt / sizeof(int16_t);
+    std::vector<int16_t> samples(sampleCount);
+    std::memcpy(samples.data(), sampleConversionDesc.buf, sampleConversionDesc.len_cvt);
 
-            std::memcpy(sampleConversionDesc.buf, wavRawSamples, wavRawSampleByteCount);
+    // for(u32 i=0; i<sampleCount; i++){
+    //     samples[i] *= volumeMultiplier;
+    // }
 
-            SDL_ConvertAudio(&sampleConversionDesc);
+    this->soundBuffers[idx].vol = volumeMultiplier;
+    this->soundBuffers[idx].len = sampleCount;
+    this->soundBuffers[idx].samples = static_cast<i16*>(linearAlloc(this->soundBuffers[idx].len * sizeof(i16)));
+    std::memcpy(this->soundBuffers[idx].samples, samples.data(), sampleCount * sizeof(i16));
 
-            const size_t sampleCount = sampleConversionDesc.len_cvt / sizeof(int16_t);
-            std::vector<int16_t> samples(sampleCount);
-            std::memcpy(samples.data(), sampleConversionDesc.buf, sampleConversionDesc.len_cvt);
+    delete[] sampleConversionDesc.buf;
 
-            for(u32 i=0; i<sampleCount; i++){
-                samples[i] *= volumeMultiplier;
-            }
-
-            SaveWav(fullPath.c_str(), reinterpret_cast<uint8_t*>(samples.data()), sampleConversionDesc.len_cvt, 44100, 1);
-            //SaveWav(fullPath.c_str(), sampleConversionDesc.buf, sampleConversionDesc.len_cvt, 44100,1);
-
-            delete[] sampleConversionDesc.buf;
-        }
-        else
-        {
-            //printf("saving file %s", fullPath);
-            SaveWav(fullPath.c_str(), wavRawSamples, sizeof(wavRawSamples), wavFormat.freq, wavFormat.channels);
-        }
-
-        //wavRawData = (u8 *)FileSystem::OpenPath(fullPath.c_str(), 1);
-    }
-
-    this->sfx_obj[idx].path = fullPath;
-    this->sfx_obj[idx].volume = volumeMultiplier;
-
-    //printf("Loaded sound %s idx:%i\n", this->sfx_obj[idx].path.c_str(), idx);
+    this->soundBufMutex.unlock();
     return ZUN_SUCCESS;
 }
 
 ZunResult SoundPlayer::PlayBGM(bool isLooping)
 {
-    this->mixVol[0] = 1.0f;
     // Make sure the previous BGM is stopped
     if(!(opendspAudioGetState(this->bgm) != OPENDSP_AUDIO_PLAYING)){
         printf("BGM not released, releasing it.\n");
         this->StopBGM();
     }
-
+    // float mix[12] = {};
+    // mix[0] = 0.125;
+    // mix[1] = 0.125;
+    // opendspAudioSetMix(this->bgm, mix);
     printf("PLaying %s\n", this->backgroundMusic.path);
     opendspAudioOpen(&this->bgm, this->backgroundMusic.path, NULL);
-    opendspAudioSetVolume(this->bgm, 0.9f);
+    opendspAudioSetVolume(this->bgm, 0.100f);
 
     opendspAudioSetLoop(this->bgm, isLooping);
     opendspAudioPlay(this->bgm);
@@ -238,10 +227,86 @@ ZunResult SoundPlayer::PlayBGM(bool isLooping)
     return ZUN_SUCCESS;
 }
 
+void SoundPlayer::GetCurrentPlaying(){
+    for(u32 channel = 2; channel < CHANNEL_COUNT; channel++){
+        ndspWaveBuf& wave = this->waveBuffers[channel];
+
+        if(!this->channelActive[channel]){
+            continue;
+        }
+
+        if(wave.status == NDSP_WBUF_DONE){
+            this->channelActive[channel] = false;
+            if(this->playingChannels > 0){
+                this->playingChannels--;
+            }
+            wave.status = NDSP_WBUF_FREE;
+        }
+    }
+}
+
+void SoundPlayer::NormalizeChannels(){
+    const float normalization = 1.0f / std::max(8, this->playingChannels);
+
+    for(u32 channel = 2; channel < CHANNEL_COUNT; channel++){
+        if(!this->channelActive[channel]){
+            continue;
+        }
+
+        float mix[12] = {};
+        const float gain = this->channelVolumes[channel] * normalization;
+
+        mix[0] = gain;
+        mix[1] = gain;
+        ndspChnSetMix(channel, mix);
+    }
+}
+
+void SoundPlayer::PlayBufferAndMix(i32 bufIdx){
+
+    this->GetCurrentPlaying();
+
+    for(u32 i = 2; i < CHANNEL_COUNT; i++){
+
+        const u32 channel = i;
+        SoundData& sound = this->soundBuffers[bufIdx];
+        ndspWaveBuf& wave = this->waveBuffers[channel];
+
+        if((wave.status == NDSP_WBUF_DONE) || (wave.status == NDSP_WBUF_FREE)){
+            ndspChnSetInterp(channel, NDSP_INTERP_LINEAR);
+            ndspChnSetRate(channel, 44100);
+            ndspChnSetFormat(channel, NDSP_FORMAT_MONO_PCM16);
+            this->channelVolumes[channel] = sound.vol;
+            this->channelActive[channel] = true;
+            this->NormalizeChannels();
+
+            wave.data_vaddr = &sound.samples[0];
+            wave.nsamples = sound.len;
+            wave.status = NDSP_WBUF_FREE;
+
+            DSP_FlushDataCache(sound.samples,sound.len * sizeof(i16));
+            DSP_FlushDataCache(&wave,sizeof(wave));
+
+            ndspChnWaveBufAdd(channel, &wave);
+            this->playingChannels++;
+
+            break;
+        }else{
+            continue;
+        }
+    }
+}
+
 void SoundPlayer::PlaySounds()
 {
     i32 idx;
     i32 sndBufIdx;
+
+    if(!g_Supervisor.cfg.playSounds){
+        return;
+    }
+
+    this->soundBufMutex.lock();
 
     for (idx = 0; idx < ARRAY_SIZE_SIGNED(this->soundBuffersToPlay); idx++)
     {
@@ -253,17 +318,19 @@ void SoundPlayer::PlaySounds()
         sndBufIdx = this->soundBuffersToPlay[idx];
         this->soundBuffersToPlay[idx] = -1;
 
-        // Check and make sure the sfx is still bound to a channel, if not then rebind it
-        if(this->sfx_obj[sndBufIdx].isBound == false){
-            this->BindChannel((SoundIdx)sndBufIdx);
+        if (this->soundBuffers[sndBufIdx].samples == NULL)
+        {
+            continue;
         }
 
-        AudioChannel& channel = this->sfx[this->sfx_obj[sndBufIdx].boundTo];
+        this->soundBuffers[sndBufIdx].pos = 0;
+        this->soundBuffers[sndBufIdx].isPlaying = true;
 
-        opendspAudioStop(channel.stream);
-        opendspAudioPlay(channel.stream);
-
+        //this->PlayBufferAndMix(sndBufIdx);
     }
+
+    this->soundBufMutex.unlock();
+
 }
 
 void SoundPlayer::BindChannel(SoundIdx idx){
@@ -303,10 +370,6 @@ void SoundPlayer::BindChannel(SoundIdx idx){
 void SoundPlayer::PlaySoundByIdx(SoundIdx idx)
 {
 
-    if(idx != NO_SOUND){
-        this->BindChannel(idx);
-    }
-
     u32 i;
 
     for (i = 0; i < ARRAY_SIZE(this->soundBuffersToPlay); i++)
@@ -330,9 +393,21 @@ void SoundPlayer::PlaySoundByIdx(SoundIdx idx)
     this->soundBuffersToPlay[i] = idx;
 }
 
-void SoundPlayer::MixAudio(u32 samples)
+void SoundPlayer::MixAudio()
 {
+    this->soundBufMutex.lock();
 
+    for(int i = 0; i < ARRAY_SIZE_SIGNED(this->soundBuffers); i++){
+        if(!this->soundBuffers[i].isPlaying){
+            continue;
+        }
+
+        this->PlayBufferAndMix(i);
+
+        this->soundBuffers[i].isPlaying = false;
+    }
+
+    this->soundBufMutex.unlock();
 }
 
 // EoSD originally just used this function to manage the streaming of the music WAV file.
@@ -340,5 +415,13 @@ void SoundPlayer::MixAudio(u32 samples)
 //   in a thread keeps sound running continuously, even if the main thread runs into lag
 void SoundPlayer::BackgroundMusicPlayerThread()
 {
+while(1){
 
+    if(this->terminateFlag){
+        return;
+    }
+
+    this->MixAudio();
+    SDL_Delay(5);
+}
 }
