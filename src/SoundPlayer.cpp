@@ -138,6 +138,34 @@ ZunResult SoundPlayer::LoadWav(const char *path)
 
 ZunResult SoundPlayer::LoadPos(const char *path)
 {
+    u8 *fileData;
+
+    if (g_Supervisor.cfg.playSounds == 0)
+    {
+        return ZUN_ERROR;
+    }
+
+    fileData = FileSystem::OpenPath(path, 0);
+
+    if (fileData == NULL)
+    {
+        return ZUN_ERROR;
+    }
+
+    this->backgroundMusic.loopStart = SDL_SwapLE32(*((u32 *)fileData));
+    this->backgroundMusic.loopEnd = SDL_SwapLE32(*(u32 *)(fileData + 4));
+
+    free(fileData);
+
+    // if (this->backgroundMusic.loopStart >= this->backgroundMusic.loopEnd ||
+    //     this->backgroundMusic.loopEnd > this->backgroundMusic.srcWav.samples)
+    // {
+    //     this->backgroundMusic.loopStart = 0;
+    //     this->backgroundMusic.loopEnd = this->backgroundMusic.srcWav.samples;
+
+    //     return ZUN_ERROR;
+    // }
+
     return ZUN_SUCCESS;
 }
 
@@ -220,8 +248,6 @@ ZunResult SoundPlayer::LoadSound(i32 idx, const char *path, f32 volumeMultiplier
         this->soundBuffers[idx].samples[i] *= volumeMultiplier;
     }
 
-    
-
     this->soundBuffers[idx].pos = 0;
     this->soundBuffers[idx].isPlaying = false;
 
@@ -238,14 +264,13 @@ ZunResult SoundPlayer::PlayBGM(bool isLooping)
     if(!(opendspAudioGetState(this->bgm) != OPENDSP_AUDIO_PLAYING)){
         this->StopBGM();
     }
-    // float mix[12] = {};
-    // mix[0] = 1/8;
-    // mix[1] = 1/8;
-    //opendspAudioSetMix(this->bgm, mix);
+
     opendspAudioOpen(&this->bgm, this->backgroundMusic.path, NULL);
-    opendspAudioSetVolume(this->bgm, 0.125f);
+
+    opendspAudioSetVolume(this->bgm, 0.25f);
 
     opendspAudioSetLoop(this->bgm, isLooping);
+    opendspAudioSetLoopRange(this->bgm, this->backgroundMusic.loopStart, this->backgroundMusic.loopEnd);
     opendspAudioPlay(this->bgm);
 
     return ZUN_SUCCESS;
@@ -261,7 +286,7 @@ bool SoundPlayer::RestartSound(i32 soundIdx, u8 normalize)
     const u32 channel = sound.dspChannel;
     ndspWaveBuf& wave = this->waveBuffers[channel];
 
-    const float gain = 1.0f / std::max<u8>(normalize, 8);
+    const float gain = 1.0f / std::max<u8>(normalize, 4);
 
     // Fully reset the channel and its wave queue.
     ndspChnReset(channel);
@@ -297,7 +322,7 @@ bool SoundPlayer::PlayBufferAndMix(i32 bufIdx, u8 normalize)
         return true;
     }
 
-    const float gain = 1.0f / std::max<u8>(normalize, 8);
+    const float gain = 1.0f / std::max<u8>(normalize, 4);
 
     for (u32 channel = 2; channel < CHANNEL_COUNT; ++channel) {
         ndspWaveBuf& wave = this->waveBuffers[channel];

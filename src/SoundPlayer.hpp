@@ -90,6 +90,8 @@ struct MusicStream
 
 struct BGM{
     const char *path;
+    u32 loopStart;
+    u32 loopEnd;
 };
 
 struct SoundEffect{
