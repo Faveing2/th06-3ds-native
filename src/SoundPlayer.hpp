@@ -8,6 +8,10 @@
 #include <mutex>
 #include <thread>
 
+#include <opendsp.h>
+#include <opendsp/audio.h>
+#include <3ds.h>
+
 enum SoundIdx
 {
     NO_SOUND = -1,
@@ -56,7 +60,12 @@ struct SoundData
     i16 *samples;
     u32 pos;
     u32 len;
+    float vol;
     bool isPlaying;
+    bool dspStarted = false;
+    bool dspFinished = false;
+    bool restartRequested = false;
+    u32 dspChannel = UINT32_MAX;
 };
 
 struct WavData
@@ -74,6 +83,25 @@ struct MusicStream
     u32 loopEnd;
     u32 fadeoutLen;
     u32 fadeoutProgress;
+};
+
+struct BGM{
+    const char *path;
+    u32 loopStart;
+    u32 loopEnd;
+};
+
+struct SoundEffect{
+    f32 volume = 1.0f;
+    std::string path;
+    bool isBound = false;
+    u32 boundTo = 0;
+    i32 idx;
+};
+
+struct AudioChannel{
+    opendspAudioStream *stream = NULL;
+    u32 boundTo = 0;
 };
 
 struct SoundPlayer
@@ -96,6 +124,9 @@ struct SoundPlayer
 
     void BackgroundMusicPlayerThread();
     void MixAudio(u32 samples);
+    bool PlayBufferAndMix(i32 idx, u8 normalize);
+    bool RestartSound(i32 soundIdx, u8 normalize);
+    void UpdateFinishedSounds();
 
     SoundData soundBuffers[128];
     std::mutex soundBufMutex;
@@ -103,7 +134,24 @@ struct SoundPlayer
     std::thread backgroundMusicThreadHandle;
     std::atomic_bool terminateFlag;
     i32 soundBuffersToPlay[3];
-    MusicStream backgroundMusic;
+    //MusicStream backgroundMusic;
+    BGM backgroundMusic;
+    opendspAudioStream *bgm = NULL;
+    AudioChannel sfx[22];
+    f32 mixVol[12];
+
+    u32 sfx_pointer = 1;
+
+    ndspWaveBuf waveBuffers[22];
+    u32 waveBuffersUsed = 2;
+
+    SoundEffect sfx_obj[32];
+    u32 boundEffects = 0;
+
+    int playingChannels = 1;
+    bool channelActive[22];
+    float channelVolumes[22];
+
     bool isLooping;
 };
 

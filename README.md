@@ -53,6 +53,7 @@ Download/install the latest release from the QR code above or the releases. No n
 - `SDL2`
 - `SDL2_image`
 - `SDL2_ttf`
+- `Opendsp`
 
 Clone the SDL repositories
 
@@ -62,11 +63,18 @@ Clone the SDL repositories
 
 `git clone https://github.com/libsdl-org/SDL_ttf.git -b SDL2`
 
-Run the following in each repository
+`git clone https://github.com/Cellenseres/OpenDSP`
+
+Run the following in each SDL repository
 ```
 cmake -S. -Bbuild -DCMAKE_TOOLCHAIN_FILE="$DEVKITPRO/cmake/3DS.cmake" -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 cmake --install build
+```
+
+Run the following for OpenDSP
+```
+make -C library install
 ```
 
 Clone this repository and run
