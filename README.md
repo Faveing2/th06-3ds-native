@@ -12,6 +12,7 @@ This project is a port of [GensokyoClub's Th06 Decomplilation](https://github.co
 
 - Switch between 5:3 and 4:3 aspect ratio using display mode in options.
 - Experimental stereoscopic 3d rendering support
+- Smooth audio playback via [Opendsp](https://github.com/Cellenseres/OpenDSP)
 
 # Screenshots
 
