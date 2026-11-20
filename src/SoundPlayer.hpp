@@ -66,9 +66,6 @@ struct SoundData
     bool dspFinished = false;
     bool restartRequested = false;
     u32 dspChannel = UINT32_MAX;
-    ~SoundData(){
-        linearFree(samples);
-    }
 };
 
 struct WavData

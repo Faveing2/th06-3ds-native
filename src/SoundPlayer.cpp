@@ -52,43 +52,6 @@ static const char *const g_SFXList[26] = {
 };
 SoundPlayer g_SoundPlayer;
 
-struct WavHeader {
-    char     riff[4] = {'R', 'I', 'F', 'F'};
-    uint32_t fileSize;
-    char     wave[4] = {'W', 'A', 'V', 'E'};
-    char     fmt[4]  = {'f', 'm', 't', ' '};
-    uint32_t fmtSize = 16;
-    uint16_t format = 1;       // PCM
-    uint16_t channels;
-    uint32_t sampleRate;
-    uint32_t byteRate;
-    uint16_t blockAlign;
-    uint16_t bitsPerSample = 16;
-    char     data[4] = {'d', 'a', 't', 'a'};
-    uint32_t dataSize;
-} __attribute__((packed));
-
-bool SaveWav(const char* path,const Uint8* audioData,Uint32 audioBytes,Uint32 sampleRate,Uint16 channels){
-    WavHeader header{};
-
-    header.channels = channels;
-    header.sampleRate = sampleRate;
-    header.bitsPerSample = 16;
-    header.blockAlign = channels * sizeof(int16_t);
-    header.byteRate = sampleRate * header.blockAlign;
-    header.dataSize = audioBytes;
-    header.fileSize = 36 + audioBytes;
-
-    FILE* file = std::fopen(path, "wb");
-    if (!file)
-        return false;
-
-    bool success =std::fwrite(&header, sizeof(header), 1, file) == 1 && std::fwrite(audioData, 1, audioBytes, file) == audioBytes;
-
-    std::fclose(file);
-    return success;
-}
-
 SoundPlayer::SoundPlayer()
 {
     // Note: memset of an std::mutex crashes on windows
@@ -97,9 +60,17 @@ SoundPlayer::SoundPlayer()
 
 ZunResult SoundPlayer::InitializeDSound()
 {
-    
-    opendspInit();
-    opendspAudioInit((1u << 24) - 1);
+
+    Result result = opendspInit();
+
+    if (R_FAILED(result)) {
+        printf("OpenDSP initialization failed: 0x%08lX\n", result);
+        return ZUN_ERROR;
+    }
+
+    opendspAudioInit((1u << 2) - 1);
+
+    std::fill_n(this->soundBuffersToPlay, ARRAY_SIZE(this->soundBuffersToPlay), -1);
 
     this->backgroundMusicThreadHandle = std::thread(&SoundPlayer::BackgroundMusicPlayerThread, this);
 
@@ -108,11 +79,31 @@ ZunResult SoundPlayer::InitializeDSound()
 
 ZunResult SoundPlayer::Release(void)
 {
-    opendspAudioClose(&this->bgm);
 
     this->terminateFlag = true;
-    // Do not reset this back to null
-    //this->bgm = NULL;
+    
+    if(this->backgroundMusicThreadHandle.joinable()){
+        this->backgroundMusicThreadHandle.join();
+    }
+
+    this->terminateFlag = false;
+
+    this->StopBGM();
+
+
+    for(u32 channel = 0; channel < CHANNEL_COUNT; channel++){
+        ndspChnWaveBufClear(channel);
+    }
+
+    for(int idx = 0; idx < ARRAY_SIZE(this->soundBuffers); idx++){
+        if (this->soundBuffers[idx].samples != NULL) {
+            linearFree(this->soundBuffers[idx].samples);
+            this->soundBuffers[idx].samples = NULL;
+            this->soundBuffers[idx].isPlaying = false;
+        }
+    }
+    opendspAudioExit();
+    opendspExit();
 
     return ZUN_SUCCESS;
 }
@@ -121,7 +112,6 @@ void SoundPlayer::StopBGM()
 {
     opendspAudioStop(this->bgm);
     opendspAudioClose(&this->bgm);
-   //Release();
 }
 
 void SoundPlayer::FadeOut(f32 seconds)
@@ -171,8 +161,6 @@ ZunResult SoundPlayer::LoadPos(const char *path)
 
 ZunResult SoundPlayer::InitSoundBuffers()
 {
-
-    opendspInit();
     ndspSetOutputMode(NDSP_OUTPUT_STEREO);
     ndspSetClippingMode(NDSP_CLIP_NORMAL);
 
@@ -209,8 +197,7 @@ ZunResult SoundPlayer::LoadSound(i32 idx, const char *path, f32 volumeMultiplier
 
     if (this->soundBuffers[idx].samples != NULL)
     {
-        linearFree(this->soundBuffers[idx].samples);
-        this->soundBuffers[idx].samples = NULL;
+        goto fail;
     }
 
     wavRawData = (u8 *)FileSystem::OpenPath(path, 0);
@@ -250,6 +237,9 @@ ZunResult SoundPlayer::LoadSound(i32 idx, const char *path, f32 volumeMultiplier
 
     this->soundBuffers[idx].pos = 0;
     this->soundBuffers[idx].isPlaying = false;
+    this->soundBuffers[idx].dspFinished = false;
+    this->soundBuffers[idx].dspFinished = false;
+    this->soundBuffers[idx].dspChannel = UINT32_MAX;
 
     SDL_FreeWAV(wavRawSamples);
 
@@ -499,6 +489,10 @@ void SoundPlayer::BackgroundMusicPlayerThread()
 
     while (1)
     {
+        if(this->terminateFlag){
+            return;
+        }
+
         const u64 curTicks = SDL_GetTicks64();
         const u64 elapsedMs = curTicks - lastTick;
         lastTick = curTicks;
@@ -511,10 +505,6 @@ void SoundPlayer::BackgroundMusicPlayerThread()
 
         if (samplesToAdvance > 0) {
             this->MixAudio(samplesToAdvance);
-        }
-
-        if(this->terminateFlag){
-            return;
         }
 
         SDL_Delay(5);
