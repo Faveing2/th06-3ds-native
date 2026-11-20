@@ -62,6 +62,13 @@ struct SoundData
     u32 len;
     float vol;
     bool isPlaying;
+    bool dspStarted = false;
+    bool dspFinished = false;
+    bool restartRequested = false;
+    u32 dspChannel = UINT32_MAX;
+    ~SoundData(){
+        linearFree(samples);
+    }
 };
 
 struct WavData
@@ -117,12 +124,10 @@ struct SoundPlayer
     ZunResult LoadPos(const char *path);
 
     void BackgroundMusicPlayerThread();
-    void MixAudio();
-
-    void BindChannel(SoundIdx idx);
-    void PlayBufferAndMix(i32 idx);
-    void GetCurrentPlaying();
-    void NormalizeChannels();
+    void MixAudio(u32 samples);
+    bool PlayBufferAndMix(i32 idx, u8 normalize);
+    bool RestartSound(i32 soundIdx, u8 normalize);
+    void UpdateFinishedSounds();
 
     SoundData soundBuffers[128];
     std::mutex soundBufMutex;
@@ -144,7 +149,7 @@ struct SoundPlayer
     SoundEffect sfx_obj[32];
     u32 boundEffects = 0;
 
-    int playingChannels = 0;
+    int playingChannels = 1;
     bool channelActive[22];
     float channelVolumes[22];
 
