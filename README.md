@@ -6,7 +6,7 @@
 
 This project is a port of [GensokyoClub's Th06 Decomplilation](https://github.com/GensokyoClub/th06) to the 3ds using the Citro3d graphics library.
 
-*Only tested on the New3ds, Old3ds compatibility and performance is current unknown*
+*Compatible with new3ds and old3ds models, however performance can struggle on the old3ds*
 
 # Features
 
@@ -87,7 +87,8 @@ make
 - Adjust the game to utilize the bottom screen of the 3ds
 - Old3ds performance improvement
 - Allow 3ds buttons to be remapped
-- OpenDSP support 
+- TH6NC soundtrack converter
+- TH06 Classic steam asset converter (maybe)
 
 # AI Disclaimer
 AI was used to aid in debugging code. However all changes from GensokyoClub's source code was written by myself. 
