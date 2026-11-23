@@ -154,7 +154,7 @@ ZunResult SoundPlayer::LoadPos(const char *path)
 ZunResult SoundPlayer::InitSoundBuffers()
 {
     ndspSetOutputMode(NDSP_OUTPUT_STEREO);
-    ndspSetClippingMode(NDSP_CLIP_NORMAL);
+    ndspSetClippingMode(NDSP_CLIP_SOFT);
 
     std::fill_n(this->soundBuffersToPlay, ARRAY_SIZE(this->soundBuffersToPlay), -1);
 
