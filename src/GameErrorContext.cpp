@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <cstring>
 
+#include <3ds.h>
+
 GameErrorContext g_GameErrorContext;
 
 const char *GameErrorContext::Log(const char *fmt, ...)
@@ -35,6 +37,15 @@ const char *GameErrorContext::Log(const char *fmt, ...)
 const char *GameErrorContext::Fatal(const char *fmt, ...)
 {
     SDL_LogCritical(SDL_LOG_CATEGORY_APPLICATION, fmt);
+    errorConf err;
+    
+    errorInit(&err, ERROR_TEXT, CFG_LANGUAGE_EN);
+    
+    // Doesn't actually support printf stuff %s, however it'll still work for now
+    errorText(&err, fmt);
+    
+    errorDisp(&err);
+
     // char tmpBuffer[512];
     // size_t tmpBufferSize;
     // va_list args;

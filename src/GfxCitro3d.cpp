@@ -20,8 +20,8 @@
 // Compiled vertex shader
 #include "ff_shbin.h"
 
-// Matching the value used for https://github.com/ItsPoofy/th06-3ds/blob/e6ec18704b60398904b3afe47e9fda684842c67a/src/platform/3ds/CtrRenderer.hpp#L97, I'll probably do some research into why this value exactly. This will allocate 3.8MB to the vertex buffer for the GPU
-#define MAX_VERTICES 137000
+// Amnmanage has a vertex buffer of 98304 so I'm copying that
+#define MAX_VERTICES 98304
 
 static PrintConsole bottomScreen;
 

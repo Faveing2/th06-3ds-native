@@ -91,14 +91,6 @@ struct BGM{
     u32 loopEnd;
 };
 
-struct SoundEffect{
-    f32 volume = 1.0f;
-    std::string path;
-    bool isBound = false;
-    u32 boundTo = 0;
-    i32 idx;
-};
-
 struct AudioChannel{
     opendspAudioStream *stream = NULL;
     u32 boundTo = 0;
@@ -128,6 +120,7 @@ struct SoundPlayer
     bool RestartSound(i32 soundIdx, u8 normalize);
     void UpdateFinishedSounds();
 
+    // Why are there 128 of these if only 32 are used?
     SoundData soundBuffers[128];
     std::mutex soundBufMutex;
     SDL_AudioDeviceID audioDev;
@@ -137,20 +130,8 @@ struct SoundPlayer
     //MusicStream backgroundMusic;
     BGM backgroundMusic;
     opendspAudioStream *bgm = NULL;
-    AudioChannel sfx[22];
-    f32 mixVol[12];
-
-    u32 sfx_pointer = 1;
-
+    
     ndspWaveBuf waveBuffers[22];
-    u32 waveBuffersUsed = 2;
-
-    SoundEffect sfx_obj[32];
-    u32 boundEffects = 0;
-
-    int playingChannels = 1;
-    bool channelActive[22];
-    float channelVolumes[22];
 
     bool isLooping;
 };

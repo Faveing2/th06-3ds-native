@@ -11,8 +11,6 @@
 #include <array>
 #include <cmath>
 #include <cstring>
-#include <string>
-#include <new>
 #include <vector>
 
 #include <opendsp.h>
@@ -29,7 +27,10 @@
 #define BACKGROUND_MUSIC_WAV_BLOCK_ALIGN (BACKGROUND_MUSIC_WAV_BITS_PER_SAMPLE / 8 * BACKGROUND_MUSIC_WAV_NUM_CHANNELS)
 #define BACKGROUND_MUSIC_WAV_BYTE_RATE (BACKGROUND_MUSIC_WAV_BLOCK_ALIGN * BACKGROUND_MUSIC_WAV_SAMPLE_RATE)
 
-#define CHANNEL_COUNT 20
+// The 3ds DSP has 24 voices, the first two are dedicated for the bgm. The other 22 can be used for sound effects. I really doubt that the game will use all 24 voices, however it could happen. The offset is set so that sound effects start at channel 3 and do not messup the bgm.
+#define SFX_CHANNEL_COUNT 22
+#define SFX_CHANNEL_OFFSET 2
+
 // DirectSound deals with volume by subtracting a number measured in hundredths of decibels from the source sound.
 //   The scale is from 0 (no volume modification) to -10,000 (subtraction of 100 decibels, and basically silent).
 //   20 decibels affects wave amplitude by a factor of 10
@@ -91,7 +92,7 @@ ZunResult SoundPlayer::Release(void)
     this->StopBGM();
 
 
-    for(u32 channel = 0; channel < CHANNEL_COUNT; channel++){
+    for(u32 channel = 0; channel < SFX_CHANNEL_COUNT; channel++){
         ndspChnWaveBufClear(channel);
     }
 
@@ -146,15 +147,6 @@ ZunResult SoundPlayer::LoadPos(const char *path)
     this->backgroundMusic.loopEnd = SDL_SwapLE32(*(u32 *)(fileData + 4));
 
     free(fileData);
-
-    // if (this->backgroundMusic.loopStart >= this->backgroundMusic.loopEnd ||
-    //     this->backgroundMusic.loopEnd > this->backgroundMusic.srcWav.samples)
-    // {
-    //     this->backgroundMusic.loopStart = 0;
-    //     this->backgroundMusic.loopEnd = this->backgroundMusic.srcWav.samples;
-
-    //     return ZUN_ERROR;
-    // }
 
     return ZUN_SUCCESS;
 }
@@ -257,6 +249,7 @@ ZunResult SoundPlayer::PlayBGM(bool isLooping)
 
     opendspAudioOpen(&this->bgm, this->backgroundMusic.path, NULL);
 
+    // So setting the mix volume wasn't working but this does, and it doesn't affect the sound effects huh
     opendspAudioSetVolume(this->bgm, 0.25f);
 
     opendspAudioSetLoop(this->bgm, isLooping);
@@ -270,7 +263,7 @@ bool SoundPlayer::RestartSound(i32 soundIdx, u8 normalize)
 {
     SoundData& sound = this->soundBuffers[soundIdx];
 
-    if (!sound.dspStarted || sound.dspChannel >= CHANNEL_COUNT)
+    if (!sound.dspStarted || sound.dspChannel >= SFX_CHANNEL_COUNT)
         return false;
 
     const u32 channel = sound.dspChannel;
@@ -314,7 +307,7 @@ bool SoundPlayer::PlayBufferAndMix(i32 bufIdx, u8 normalize)
 
     const float gain = 1.0f / std::max<u8>(normalize, 4);
 
-    for (u32 channel = 2; channel < CHANNEL_COUNT; ++channel) {
+    for (u32 channel = SFX_CHANNEL_OFFSET; channel < SFX_CHANNEL_COUNT; ++channel) {
         ndspWaveBuf& wave = this->waveBuffers[channel];
 
         if (wave.status != NDSP_WBUF_FREE &&
@@ -322,7 +315,7 @@ bool SoundPlayer::PlayBufferAndMix(i32 bufIdx, u8 normalize)
             continue;
         }
 
-        ndspChnSetInterp(channel, NDSP_INTERP_NONE);
+        ndspChnSetInterp(channel, NDSP_INTERP_POLYPHASE);
         ndspChnSetRate(channel, 22050);
         ndspChnSetFormat(channel, NDSP_FORMAT_MONO_PCM16);
 
@@ -411,6 +404,7 @@ void SoundPlayer::PlaySoundByIdx(SoundIdx idx)
 
 }
 
+// Go through all sound buffers and check if they are done playing on the DSP
 void SoundPlayer::UpdateFinishedSounds(){
 
     for (u32 i = 0; i < ARRAY_SIZE(this->soundBuffers); ++i) {
@@ -427,7 +421,6 @@ void SoundPlayer::UpdateFinishedSounds(){
             sound.dspFinished = true;
             sound.dspChannel = 1000;
 
-            this->channelActive[channel] = false;
             wave.status = NDSP_WBUF_FREE;
         }
     }
@@ -497,6 +490,7 @@ void SoundPlayer::BackgroundMusicPlayerThread()
         const u64 elapsedMs = curTicks - lastTick;
         lastTick = curTicks;
 
+        // 22.05 is used here has it is the sample rate of the samples
         fractionalSamples += elapsedMs * 22.05;
 
         const u32 samplesToAdvance = static_cast<u32>(fractionalSamples);
