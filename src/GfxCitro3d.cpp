@@ -782,14 +782,39 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
             textureFormat
         );
 
-        C3D_TexDelete(&this->boundTexture3ds->texObject);
+        // The 3ds can only generate mipmaps for RGBA8 and RGB8 textures, so for the other formats don't generate the mipmap
+        if(textureFormat == GPU_RGBA8 || textureFormat == GPU_RGB8){
+            C3D_TexDelete(&this->boundTexture3ds->texObject);
 
-        C3D_TexInit(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
-        C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
-        C3D_TexSetWrap(&this->boundTexture3ds->texObject, GPU_REPEAT, GPU_REPEAT);
+            C3D_TexInitMipmap(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
+            C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
+            C3D_TexSetFilterMipmap(&this->boundTexture3ds->texObject,GPU_LINEAR);
+            C3D_TexSetWrap(&this->boundTexture3ds->texObject, GPU_REPEAT, GPU_REPEAT);
 
-        C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
-        C3D_TexFlush(&this->boundTexture3ds->texObject);
+            C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
+            C3D_TexGenerateMipmap(&this->boundTexture3ds->texObject, GPU_TEXFACE_2D);
+            C3D_TexFlush(&this->boundTexture3ds->texObject);
+        }else{
+            C3D_TexDelete(&this->boundTexture3ds->texObject);
+
+            C3D_TexInit(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
+            C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
+            C3D_TexSetWrap(&this->boundTexture3ds->texObject, GPU_REPEAT, GPU_REPEAT);
+
+            C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
+            C3D_TexFlush(&this->boundTexture3ds->texObject);
+        }
+
+        // C3D_TexDelete(&this->boundTexture3ds->texObject);
+
+        // C3D_TexInitMipmap(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
+        // C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
+        // C3D_TexSetFilterMipmap(&this->boundTexture3ds->texObject,GPU_LINEAR);
+        // C3D_TexSetWrap(&this->boundTexture3ds->texObject, GPU_REPEAT, GPU_REPEAT);
+
+        // C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
+        // C3D_TexGenerateMipmap(&this->boundTexture3ds->texObject, GPU_TEXFACE_2D);
+        // C3D_TexFlush(&this->boundTexture3ds->texObject);
     }
 }
 
