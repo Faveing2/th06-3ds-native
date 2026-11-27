@@ -22,6 +22,12 @@ f64 g_LastFrameTime;
 
 #define FRAME_TIME (1000. / 60.)
 
+static bool is_new_3ds(void) {
+    bool is_new = false;
+    APT_CheckNew3DS(&is_new);
+    return is_new;
+}
+
 static const struct
 /*{
     const char *name;
@@ -41,6 +47,8 @@ RenderResult GameWindow::Render()
     ZunViewport viewport;
     f64 delta;
     u32 curtime;
+
+    g_Supervisor.cfg.frameskipConfig = is_new_3ds ? 0 : 1;
 
     if (this->lastActiveAppValue == 0)
     {
@@ -76,7 +84,7 @@ RenderResult GameWindow::Render()
             g_AnmManager->SetCurrentTexture(0);
         }
 
-        g_AnmManager->FlushVertexBuffer();
+        //g_AnmManager->FlushVertexBuffer();
         g_Supervisor.viewport.x = 0;
         g_Supervisor.viewport.y = 0;
         g_Supervisor.viewport.width = GAME_WINDOW_WIDTH;
@@ -97,9 +105,8 @@ RenderResult GameWindow::Render()
         this->curFrame++;
     }
 
-    if (g_Supervisor.ShouldRunAt60Fps())
+    if (true)
     {
-        //printf("Running here");
         if (this->curFrame != 0)
         {
             g_Supervisor.framerateMultiplier = 1.0;
@@ -111,7 +118,7 @@ RenderResult GameWindow::Render()
             delta = std::fabs(slowdown - g_LastFrameTime);
             if (delta >= FRAME_TIME)
             {
-                printf("SLOWDOWN\n");
+                //printf("SLOWDOWN\n");
                 do
                 {
                     g_LastFrameTime += FRAME_TIME;
@@ -128,7 +135,7 @@ RenderResult GameWindow::Render()
     {
         if (g_Supervisor.cfg.frameskipConfig >= this->curFrame)
         {
-            Present();
+            //Present();
             goto RUN_CHAINS;
         }
 

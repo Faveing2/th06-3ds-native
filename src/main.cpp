@@ -16,6 +16,11 @@
 #include "i18n.hpp"
 #include "utils.hpp"
 
+static bool is_new_3ds(void) {
+    bool is_new = false;
+    APT_CheckNew3DS(&is_new);
+    return is_new;
+}
 
 int main(int argc, char *argv[])
 {
@@ -56,14 +61,6 @@ restart:
         return 1;
     }
 
-    // if(!logFile){
-    //     std::printf(
-    //         "fopen failed: %s\n",
-    //         std::strerror(errno)
-    //     );
-    // }
-
-
     g_SoundPlayer.InitializeDSound();
     Controller::GetJoystickCaps();
     Controller::ResetKeyboard();
@@ -72,14 +69,11 @@ restart:
     {
         goto stop;
     }
-    // if (!g_Supervisor.cfg.windowed)
-    // {
-    //     SDL_ShowCursor(SDL_DISABLE);
-    // }
 
     g_GameWindow.curFrame = 0;
 
-    //g_GfxBackend->ToggleFullScreen();
+    // No idea really where to put this so here it will go for now
+    g_Supervisor.cfg.frameskipConfig = is_new_3ds ? 0 : 1;
 
     while (aptMainLoop())
     {
