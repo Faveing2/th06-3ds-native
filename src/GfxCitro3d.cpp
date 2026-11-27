@@ -4,23 +4,17 @@
 #include <tex3ds.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "GfxCitro3d.hpp"
 #include "GameWindow.hpp"
 #include "Supervisor.hpp"
 #include "utils.hpp"
 #include <vector>
-#include <memory>
-#include <SDL2/SDL.h>
-#include "Controller.hpp"
-#include "AnmManager.hpp"
 #include <algorithm>
-#include "Supervisor.hpp"
 
 // Compiled vertex shader
 #include "ff_shbin.h"
 
-// Amnmanage has a vertex buffer of 98304 so I'm copying that
+// Amnmanage has a vertex buffer of 98304 so I'm copying that (I guess strickly there could be more than this since sometimes the backend draw calll is used, however in practice I never see the vertex buffer fill up)
 #define MAX_VERTICES 98304
 
 static PrintConsole bottomScreen;
@@ -227,23 +221,23 @@ void GfxCitro3d::setFogLut(){
         previous = value;
     }
 
-    FogLut_FromArray(&this->fogLuts[this->fogLutPointer].table, data);
-    this->fogLuts[this->fogLutPointer].fogFar = this->fogFar;
-    this->fogLuts[this->fogLutPointer].fogNear = this->fogNear;
-    this->fogLuts[this->fogLutPointer].depthFar = this->depthFar3ds;
-    this->fogLuts[this->fogLutPointer].depthNear = this->depthNear3ds;
+    FogLut_FromArray(&this->fogLuts[this->fogLutIndex].table, data);
+    this->fogLuts[this->fogLutIndex].fogFar = this->fogFar;
+    this->fogLuts[this->fogLutIndex].fogNear = this->fogNear;
+    this->fogLuts[this->fogLutIndex].depthFar = this->depthFar3ds;
+    this->fogLuts[this->fogLutIndex].depthNear = this->depthNear3ds;
 
-    C3D_FogLutBind(&this->fogLuts[this->fogLutPointer].table);
+    C3D_FogLutBind(&this->fogLuts[this->fogLutIndex].table);
 
-    this->fogTableAppliedIdx = this->fogLutPointer;
+    this->fogTableAppliedIdx = this->fogLutIndex;
 
     // If we run out of fog tables then start over
-    if(this->fogLutPointer+1 == FOG_TABLES){
-        this->fogLutPointer = 0;
+    if(this->fogLutIndex+1 == FOG_TABLES){
+        this->fogLutIndex = 0;
         // Basically invalidates the LUT
-        this->fogLuts[this->fogLutPointer].fogFar = -1.0f;
+        this->fogLuts[this->fogLutIndex].fogFar = -1.0f;
     }else{
-        this->fogLutPointer += 1;
+        this->fogLutIndex += 1;
     }
 }
 
@@ -671,13 +665,7 @@ static unsigned MortonIndex8(unsigned x, unsigned y)
            ((y & 4) << 3);
 }
 
-std::vector<u8> SwizzleTexture(
-    const void* source,
-    u32 width,
-    u32 height,
-    GPU_TEXCOLOR format
-    )
-{
+std::vector<u8> SwizzleTexture(const void* source,u32 width,u32 height,GPU_TEXCOLOR format){
 
     u32 paddedWidth;
     u32 paddedHeight;
@@ -687,22 +675,13 @@ std::vector<u8> SwizzleTexture(
     if (!source || bytesPerPixel == 0 || width == 0 || height == 0)
         return {};
 
-    // Round each dimension up to the next multiple of 8.
-
+    // Round each dimension up to the next multiple of 2.
     paddedWidth = BitCeil(width);
     paddedHeight = BitCeil(height);
 
-    //Not correctly calculating the padding values
-    // paddedWidth  = (width  + 7) & ~7u;
-    // paddedHeight = (height + 7) & ~7u;
     const u8* input = (const u8*)(source);
 
-    std::vector<u8> output(
-        (std::size_t)(paddedWidth) *
-        paddedHeight *
-        bytesPerPixel,
-        0
-    );
+    std::vector<u8> output((std::size_t)(paddedWidth) * paddedHeight * bytesPerPixel,0);
 
     const u32 tilesAcross = paddedWidth / 8;
 
@@ -716,20 +695,13 @@ std::vector<u8> SwizzleTexture(
             const u32 localX = x % 8;
             const u32 localY = y % 8;
 
-            const u32 tileIndex =
-                tileY * tilesAcross + tileX;
+            const u32 tileIndex = tileY * tilesAcross + tileX;
 
-            const u32 pixelIndex =
-                tileIndex * 64 +
-                MortonIndex8(localX, localY);
+            const u32 pixelIndex = tileIndex * 64 + MortonIndex8(localX, localY);
 
-            const std::size_t sourceOffset =
-                ((std::size_t)(y) * width + x) *
-                bytesPerPixel;
+            const std::size_t sourceOffset = ((std::size_t)(y) * width + x) * bytesPerPixel;
 
-            const std::size_t outputOffset =
-                (std::size_t)(pixelIndex) *
-                bytesPerPixel;
+            const std::size_t outputOffset = (std::size_t)(pixelIndex) * bytesPerPixel;
 
             // For some reason this pixel format is reversed?
             if (format == GPU_RGBA8){
@@ -741,11 +713,7 @@ std::vector<u8> SwizzleTexture(
                 dst[2] = src[1];
                 dst[3] = src[0];
             }else{
-            std::memcpy(
-                output.data() + outputOffset,
-                input + sourceOffset,
-                bytesPerPixel
-            );   
+            std::memcpy(output.data() + outputOffset, input + sourceOffset, bytesPerPixel);
             }
         }
     }
@@ -754,8 +722,6 @@ std::vector<u8> SwizzleTexture(
 }
 
 void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDataType type, const void *data){
-    //utils::DebugPrint("Setting Texture Image");
-
     u32 paddedwidth;
     u32 paddedheight;
 
@@ -804,17 +770,6 @@ void GfxCitro3d::SetTextureImage(u32 width, u32 height, PixelFormat fmt, PixelDa
             C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
             C3D_TexFlush(&this->boundTexture3ds->texObject);
         }
-
-        // C3D_TexDelete(&this->boundTexture3ds->texObject);
-
-        // C3D_TexInitMipmap(&this->boundTexture3ds->texObject, paddedwidth, paddedheight, textureFormat);
-        // C3D_TexSetFilter(&this->boundTexture3ds->texObject, GPU_LINEAR, GPU_LINEAR);
-        // C3D_TexSetFilterMipmap(&this->boundTexture3ds->texObject,GPU_LINEAR);
-        // C3D_TexSetWrap(&this->boundTexture3ds->texObject, GPU_REPEAT, GPU_REPEAT);
-
-        // C3D_TexUpload(&this->boundTexture3ds->texObject, converted.data());
-        // C3D_TexGenerateMipmap(&this->boundTexture3ds->texObject, GPU_TEXFACE_2D);
-        // C3D_TexFlush(&this->boundTexture3ds->texObject);
     }
 }
 
@@ -861,7 +816,6 @@ void GfxCitro3d::Enable3d(bool enable){
 
 void GfxCitro3d::Draw(PrimitiveType type, i32 start, i32 count)
 {
-
     GPU_Primitive_t C3DPrim;
 
     switch(type)

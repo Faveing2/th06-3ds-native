@@ -8,8 +8,7 @@
 #include <citro3d.h>
 #include <tex3ds.h>
 #include <stdio.h>
-
-// 
+ 
 #define FOG_TABLES 16
 
 struct Vertex3DS
@@ -126,8 +125,7 @@ struct GfxCitro3d : GfxInterface
 
         fogLut fogLuts[FOG_TABLES];
         i32 fogTableAppliedIdx = -1;
-        // Not actually a pointer
-        i32 fogLutPointer = 0;
+        i32 fogLutIndex = 0;
 
         f32 fogNear = 0;
         f32 fogFar = 0;

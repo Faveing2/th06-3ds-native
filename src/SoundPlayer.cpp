@@ -27,7 +27,7 @@
 #define BACKGROUND_MUSIC_WAV_BLOCK_ALIGN (BACKGROUND_MUSIC_WAV_BITS_PER_SAMPLE / 8 * BACKGROUND_MUSIC_WAV_NUM_CHANNELS)
 #define BACKGROUND_MUSIC_WAV_BYTE_RATE (BACKGROUND_MUSIC_WAV_BLOCK_ALIGN * BACKGROUND_MUSIC_WAV_SAMPLE_RATE)
 
-// The 3ds DSP has 24 voices, the first two are dedicated for the bgm. The other 22 can be used for sound effects. I really doubt that the game will use all 24 voices, however it could happen. The offset is set so that sound effects start at channel 3 and do not messup the bgm.
+// The 3ds DSP has 24 voices, the first two (0 & 1) are dedicated for the bgm. The other 22 can be used for sound effects. I really doubt that the game will use all 24 voices, however it could happen. The offset is set so that sound effects start at channel 3 and do not messup the bgm.
 #define SFX_CHANNEL_COUNT 22
 #define SFX_CHANNEL_OFFSET 2
 
@@ -35,7 +35,6 @@
 //   The scale is from 0 (no volume modification) to -10,000 (subtraction of 100 decibels, and basically silent).
 //   20 decibels affects wave amplitude by a factor of 10
 
-// I should probably have a function to apply a flat volume increase, or I can just edit these values :)
 static const SoundBufferIdxVolume g_SoundBufferIdxVol[32] = {
     {0, -1500}, {0, -2000}, {1, -1200}, {1, -1400}, {2, -1000},  {3, -500},   {4, -500},   {5, -1700},
     {6, -1700}, {7, -1700}, {8, -1000}, {9, -1000}, {10, -1900}, {11, -1200}, {12, -900},  {5, -1500},
@@ -65,7 +64,7 @@ ZunResult SoundPlayer::InitializeDSound()
     Result result = opendspInit();
 
     if (R_FAILED(result)) {
-        printf("OpenDSP initialization failed: 0x%08lX\n", result);
+        g_GameErrorContext.Log("Failed to Initialize opendsp");
         return ZUN_ERROR;
     }
 
@@ -250,7 +249,7 @@ ZunResult SoundPlayer::PlayBGM(bool isLooping)
     opendspAudioOpen(&this->bgm, this->backgroundMusic.path, NULL);
 
     // So setting the mix volume wasn't working but this does, and it doesn't affect the sound effects huh
-    opendspAudioSetVolume(this->bgm, 0.25f);
+    opendspAudioSetVolume(this->bgm, 0.5f);
 
     opendspAudioSetLoop(this->bgm, isLooping);
     opendspAudioSetLoopRange(this->bgm, this->backgroundMusic.loopStart, this->backgroundMusic.loopEnd);
